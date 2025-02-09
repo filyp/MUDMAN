@@ -28,12 +28,6 @@ storage = get_storage(db_url)
 # config_path = repo_root() / "configs" / "ablations_and_loss,smol,python.yaml"
 
 
-# config_path = repo_root() / "configs" / "ablations_and_loss2,pythia,python.yaml"
-# config_path = repo_root() / "configs" / "ablations_and_loss2,pythia,pile-bio.yaml"
-# config_path = repo_root() / "configs" / "ablations_and_loss2,smol,python.yaml"
-# config_path = repo_root() / "configs" / "ablations_and_loss2,smol,pile-bio.yaml"
-# config_path = repo_root() / "configs" / "ablations_and_loss2,llama32,python.yaml"
-# config_path = repo_root() / "configs" / "ablations_and_loss2,llama32,pile-bio.yaml"
 config_path = repo_root() / "configs" / "wmdp3.yaml"
 
 # study_summaries = optuna.study.get_all_study_summaries(storage)
@@ -71,18 +65,16 @@ for variant_name in full_config["variants"]:
         print(f"Study {study_name} not found")
 
 # # %% slice plot
-plot = stacked_slice_plot(studies, all_trials)
-plot
-# dir_name = repo_root() / "paper" / "plots" / "slice"
-# dir_name.mkdir(parents=True, exist_ok=True)
-# plot.write_image(dir_name / f"{multistudy_name}.pdf")
+plot = stacked_slice_plot(studies, all_trials, show_additional_param=False)
+dir_name = repo_root() / "paper" / "plots" / "slice"
+dir_name.mkdir(parents=True, exist_ok=True)
+plot.write_image(dir_name / f"{multistudy_name}.pdf")
 
-# # # %% history and importance plots (takes quite long)
-# plot = stacked_history_and_importance_plots(studies, all_trials)
-# dir_name = repo_root() / "paper" / "plots" / "history"
-# dir_name.mkdir(parents=True, exist_ok=True)
-# plot.write_image(dir_name / f"{multistudy_name}.pdf")
-
+# # %% history plots
+plot = stacked_history_plots(studies, all_trials)
+dir_name = repo_root() / "paper" / "plots" / "history"
+dir_name.mkdir(parents=True, exist_ok=True)
+plot.write_image(dir_name / f"{multistudy_name}.pdf")
 
 # %% get the studies
 

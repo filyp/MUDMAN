@@ -38,7 +38,14 @@ for variant_name in full_config["variants"]:
         f"|{multistudy_name}|{variant_name}"
     )
     study = optuna.load_study(study_name=study_name, storage=storage)
-    method_stats[variant_name] = study.best_trial.values[0]
+    
+    # # Get stats for the last N trials instead of just best trial
+    # trials = study.get_trials()
+    # markdown_line, last_n_mean, last_n_sem = get_stats_from_last_n_trials(
+    #     study, trials, n=5
+    # )
+    # method_stats[variant_name] = (last_n_mean, last_n_sem)
+    method_stats[variant_name] = study.best_trial.value
 
 method_stats
 
@@ -83,7 +90,9 @@ method_to_color = {name: color for name, color in zip(_method_names, colors)}
 
 ax.barh(
     [positions_dict[name] for name in method_stats.keys()],
-    [mean for mean in method_stats.values()],
+    # [mean for mean, sem in method_stats.values()],
+    # xerr=[sem for mean, sem in method_stats.values()],
+    [method_stats[name] for name in method_stats.keys()],
     height=1,
     capsize=3,
     color=[method_to_color[name] for name in method_stats.keys()],
@@ -106,6 +115,10 @@ ax.axvline(x=baseline, color="black", linestyle="--", alpha=0.3)
 ax.set_xlim(0.25, 0.45)
 
 plt.tight_layout()
+
+# %%
+
+# %%
 
 plot_path = repo_root() / "paper" / "plots" / "wmdp.pdf"
 fig.savefig(plot_path)

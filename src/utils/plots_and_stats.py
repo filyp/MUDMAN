@@ -131,7 +131,7 @@ def stacked_slice_plot(
                 figure.update_xaxes(type="log", row=i, col=j)
 
     figure.update_layout(
-        width=225 * len(param_list),
+        width=max(225 * len(param_list), 400),
         height=300 * len(study_names),
     )
     return figure
@@ -167,6 +167,34 @@ def stacked_history_and_importance_plots(
     )
     return figure
 
+
+def stacked_history_plots(
+    studies: list[optuna.Study], all_trials: list[list[optuna.Trial]]
+):
+    study_names = [s.study_name for s in studies]
+    common_prefix = os.path.commonprefix(study_names)
+
+    # Calculate overall y-axis range
+    _values = [t.values[0] for ts in all_trials for t in ts if t.values is not None]
+    y_min = min(_values)
+    y_max = max(_values)
+
+    figure = make_subplots(rows=len(studies), cols=1)
+
+    for i, study in enumerate(studies, start=1):
+        for trace in vis.plot_optimization_history(study).data:
+            figure.add_trace(trace, row=i, col=1)
+            subtitle = study.study_name[len(common_prefix):]
+            figure.update_yaxes(title_text=subtitle, row=i, col=1, range=[y_min, y_max])
+
+    figure.update_layout(**common_layout)
+    figure.update_layout(
+        title={"text": common_prefix, "xanchor": "center", "x": 0.5},
+        width=450,  # Half the width since we only have one column
+        height=300 * len(studies),
+        showlegend=False,
+    )
+    return figure
 
 # opt_history_fig = vis.plot_optimization_history(study)
 # opt_history_fig.update_layout(**layout, width=slice_fig.layout.width)
@@ -242,5 +270,6 @@ def stacked_history_and_importance_plots(
 #     plt.tight_layout()
 #     plt.show()
 
+# %%
 # %%
 # %%
