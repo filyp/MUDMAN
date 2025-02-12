@@ -39,13 +39,13 @@ for variant_name in full_config["variants"]:
     )
     study = optuna.load_study(study_name=study_name, storage=storage)
     
-    # # Get stats for the last N trials instead of just best trial
-    # trials = study.get_trials()
-    # markdown_line, last_n_mean, last_n_sem = get_stats_from_last_n_trials(
-    #     study, trials, n=5
-    # )
-    # method_stats[variant_name] = (last_n_mean, last_n_sem)
-    method_stats[variant_name] = study.best_trial.value
+    # Get stats for the last N trials instead of just best trial
+    trials = study.get_trials()
+    markdown_line, last_n_mean, last_n_sem = get_stats_from_last_n_trials(
+        study, trials, n=20
+    )
+    method_stats[variant_name] = (last_n_mean, last_n_sem)
+    # method_stats[variant_name] = study.best_trial.value
 
 method_stats
 
@@ -77,7 +77,7 @@ positions_dict = {
 fig, ax = plt.subplots(figsize=(4.4, 2.0))
 
 # Set title and labels
-ax.set_title("Llama-3.2-1B unlearned on Pile-Bio", fontsize=12, x=0.4)
+ax.set_title("Llama-3.2-1B unlearned on Pile-Bio", fontsize=12, x=0.73)
 ax.set_xlabel("WMDP-Bio accuracy after relearning↓")
 
 # Create a color mapping for methods
@@ -85,34 +85,38 @@ colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 _method_names = list(titles_dict.keys())
 method_to_color = {name: color for name, color in zip(_method_names, colors)}
 
-# # filter method_stats
-# method_stats = {n: s for n, s in method_stats.items() if n in titles_dict}
+# Get baseline value
+baseline_path = repo_root() / "results" / "baselines" / f"{config_path.stem}.txt"
+baseline = float(baseline_path.read_text())
+
+# Calculate the differences from baseline
+differences = [mean - baseline for mean, sem in method_stats.values()]
+sems = [sem for mean, sem in method_stats.values()]
 
 ax.barh(
     [positions_dict[name] for name in method_stats.keys()],
-    # [mean for mean, sem in method_stats.values()],
-    # xerr=[sem for mean, sem in method_stats.values()],
-    [method_stats[name] for name in method_stats.keys()],
+    differences,
+    xerr=sems,
     height=1,
     capsize=3,
     color=[method_to_color[name] for name in method_stats.keys()],
+    left=baseline  # Start bars from baseline
 )
 
 # Update yticks
 ax.set_yticks([positions_dict[name] for name in method_stats.keys()])
 ax.set_yticklabels([titles_dict[name] for name in method_stats.keys()])
 
-# Remove top and right spines
+# Remove spines
 ax.spines["top"].set_visible(False)
-ax.spines["right"].set_visible(False)
-
-# Add baseline
-baseline_path = repo_root() / "results" / "baselines" / f"{config_path.stem}.txt"
-baseline = float(baseline_path.read_text())
-ax.axvline(x=baseline, color="black", linestyle="--", alpha=0.3)
+ax.spines["left"].set_visible(False)
 
 # Set xlim
-ax.set_xlim(0.25, 0.45)
+# Set xlim (keeping same range but inverted from baseline)
+ax.set_xlim(0.36, baseline)
+ax.yaxis.tick_right()
+
+# ax.yaxis.set_label_position("right")
 
 plt.tight_layout()
 
