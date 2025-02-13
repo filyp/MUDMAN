@@ -90,8 +90,8 @@ baseline_path = repo_root() / "results" / "baselines" / f"{config_path.stem}.txt
 baseline = float(baseline_path.read_text())
 
 # Calculate the differences from baseline
-differences = [mean - baseline for mean, sem in method_stats.values()]
-sems = [sem for mean, sem in method_stats.values()]
+differences = [(mean - baseline) * 100 for mean, sem in method_stats.values()]  # Convert to percentage
+sems = [sem * 100 for mean, sem in method_stats.values()]  # Convert to percentage
 
 ax.barh(
     [positions_dict[name] for name in method_stats.keys()],
@@ -100,27 +100,27 @@ ax.barh(
     height=1,
     capsize=3,
     color=[method_to_color[name] for name in method_stats.keys()],
-    left=baseline  # Start bars from baseline
+    left=baseline * 100  # Convert baseline to percentage
 )
 
 # Update yticks
 ax.set_yticks([positions_dict[name] for name in method_stats.keys()])
 ax.set_yticklabels([titles_dict[name] for name in method_stats.keys()])
 
+# Format x-axis ticks to show percentages
+ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:.0f}%'))
+
 # Remove spines
 ax.spines["top"].set_visible(False)
 ax.spines["left"].set_visible(False)
 
-# Set xlim
 # Set xlim (keeping same range but inverted from baseline)
-ax.set_xlim(0.36, baseline)
+ax.set_xlim(36, baseline * 100)  # Convert limits to percentages
 ax.yaxis.tick_right()
 
 # ax.yaxis.set_label_position("right")
 
 plt.tight_layout()
-
-# %%
 
 # %%
 
