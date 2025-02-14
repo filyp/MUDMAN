@@ -151,7 +151,11 @@ out_path.write_text(str(accuracy))
 
 # config_path = repo_root() / "configs" / "pythia_python.yaml"
 # config_path = repo_root() / "configs" / "smol_cruelty.yaml"
-config_path = repo_root() / "configs" / "smol_cruelty3.yaml"
+# config_path = repo_root() / "configs" / "smol_cruelty3.yaml"
+
+# config_path = repo_root() / "configs" / "pythia_target_modules.yaml"
+# config_path = repo_root() / "configs" / "smol_target_modules3.yaml"
+config_path = repo_root() / "configs" / "smol_target_modules_cruelty.yaml"
 
 with open(config_path, "r") as f:
     full_config = yaml.safe_load(f)

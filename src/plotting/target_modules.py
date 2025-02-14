@@ -32,7 +32,9 @@ def create_model_comparison_plot_horizontal(
 
     # Create the plot with n subplots side by side
     n_plots = len(datasets)
-    fig, axes = plt.subplots(1, n_plots, figsize=(8.3, 3.8))
+    fig, axes = plt.subplots(1, n_plots, figsize=(9, 3.3))
+
+    # plt.subplots_adjust(wspace=.9)
 
     # Convert to array of axes if single plot
     if n_plots == 1:
@@ -98,7 +100,10 @@ def create_model_comparison_plot_horizontal(
         create_subplot(ax, dataset, model_name, baseline, y_min)
 
     # Adjust layout
-    plt.tight_layout()
+    # plt.tight_layout(pad=1.1, rect=[0, 0, 1, 1])  # Added rect parameter to leave right margin
+    # plt.tight_layout()
+    plt.subplots_adjust(wspace=0.8, right=1.05)
+    # plt.subplots_adjust(wspace=0.9, right=1.2)
 
     return fig, axes
 
@@ -267,8 +272,9 @@ smol_cruelty = [
 fig, axes = create_model_comparison_plot_horizontal(
     [pythia_python, smol_python, smol_cruelty],  # Example with 3 plots using same data
     ["Pythia-14M\npython", "SmolLM-135M\npython", "SmolLM-135M\ncruelty"],
-    baselines=[3.63, 2.11, 2.682],
-    y_min=[0, 0, 2.65],
+    # baselines=[3.63, 2.11, 2.682],
+    baselines=[3.3431687355041504, 2.0990071296691895, 2.6652820110321045],
+    y_min=[0, 0, 2.6],
 )
 plt.show()
 

@@ -50,7 +50,7 @@ def create_model_comparison_plot_horizontal(
 
     # Create the plot with n subplots side by side
     n_plots = len(datasets)
-    fig, axes = plt.subplots(1, n_plots, figsize=(8, 4))
+    fig, axes = plt.subplots(1, n_plots, figsize=(8.3, 4))
 
     # Convert to array of axes if single plot
     if n_plots == 1:
@@ -112,7 +112,7 @@ def create_model_comparison_plot_horizontal(
                 assert name1 == name2
                 # todo maybe allow later plots to be blank
 
-        ax.set_xlabel("Forget loss after relearning")
+        ax.set_xlabel("Forget loss after relearning↑")
         ax.set_title(model_name)
 
         # Start x-axis at 0
