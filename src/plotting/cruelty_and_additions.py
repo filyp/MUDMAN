@@ -23,7 +23,7 @@ name_mapping = dict(
     no_r_momentum="- retain momentum",
     no_adv_decay="- adversary decay",
     no_masking="- masking",
-    no_adversary="- adversary",
+    no_adversary="- meta-learning",
     SIU_repE_retain="+ repr. eng. retain loss",
     SIU_discard_growing_weights="+ only shrink weights",
     SIU_f_momentum="+ forget momentum",
@@ -75,8 +75,8 @@ def create_model_comparison_plot_horizontal(
         for idx, row in df.iterrows():
             if row["mean"] == 0 and row["sem"] == 0 and row["study_name"]:
                 ax.text(
-                    # (baseline + 3 * y_min) / 4,
-                    y_min,
+                    (baseline + 3 * y_min) / 4,
+                    # y_min,
                     row["pos"],
                     "no valid trials",
                     va="center",
@@ -112,7 +112,7 @@ def create_model_comparison_plot_horizontal(
                 assert name1 == name2
                 # todo maybe allow later plots to be blank
 
-        ax.set_xlabel("Forget loss")
+        ax.set_xlabel("Forget loss after relearning")
         ax.set_title(model_name)
 
         # Start x-axis at 0
@@ -223,7 +223,8 @@ fig, axes = create_model_comparison_plot_horizontal(
         smol_cruelty3,
     ],  # Example with 3 plots using same data
     ["Pythia-14M\npython\n", "SmolLM-135M\ncruelty\nrelearning_rate=1e-4", "SmolLM-135M\ncruelty3\nrelearning_rate=5e-3"],
-    baselines=[3.626, 2.682, 2.682],
+    # baselines=[3.626, 2.682, 2.682],
+    baselines=[3.3431687355041504, 2.6652820110321045, 2.415815591812134],
     y_min=[0, 2.6, 2.4],
 )
 plt.show()

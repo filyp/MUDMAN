@@ -97,11 +97,6 @@ for multistudy_name in multistudy_names:
 # %%
 config_path = repo_root() / "configs" / "wmdp3.yaml"
 
-
-db_url = json.load(open("../secret.json"))["db_url"]
-storage = get_storage(db_url)
-# storage = get_storage()
-
 with open(config_path, "r") as f:
     full_config = yaml.safe_load(f)
 
@@ -152,4 +147,48 @@ out_path = repo_root() / "results" / "baselines" / f"{config_path.stem}.txt"
 out_path.parent.mkdir(parents=True, exist_ok=True)
 out_path.write_text(str(accuracy))
 
+# %%
+
+# config_path = repo_root() / "configs" / "pythia_python.yaml"
+# config_path = repo_root() / "configs" / "smol_cruelty.yaml"
+config_path = repo_root() / "configs" / "smol_cruelty3.yaml"
+
+with open(config_path, "r") as f:
+    full_config = yaml.safe_load(f)
+
+config = SimpleNamespace(**full_config["general_config"])
+relearn_config = SimpleNamespace(**full_config["relearn_config"])
+
+pt.set_default_device("cuda")
+
+# load datasets
+set_seeds(42)
+tokenizer = AutoTokenizer.from_pretrained(config.model_id)
+retain_set = dataset_loaders[config.retain_set_name](tokenizer)
+forget_set = dataset_loaders[config.forget_set_name](tokenizer)
+retain_batches = CachedBatches(retain_set["train"], config.batch_size)
+forget_batches = CachedBatches(forget_set["train"], config.batch_size)
+retain_val_batches = CachedBatches(retain_set["validation"], config.batch_size)
+forget_val_batches = CachedBatches(forget_set["validation"], config.batch_size)
+r_eval = next(iter(retain_val_batches))
+f_eval = next(iter(forget_val_batches))
+
+if config.model_id in ["meta-llama/Llama-3.2-1B"]:
+    model = AutoModelForCausalLM.from_pretrained(
+        config.model_id, torch_dtype=pt.bfloat16
+    )
+else:
+    model = AutoModelForCausalLM.from_pretrained(config.model_id)
+model.config.use_cache = False
+
+# ! only relearn with no unlearn
+set_seeds(42)
+forget_losses = relearn(
+    model, relearn_config, retain_val_batches, forget_val_batches
+)
+
+out_path = repo_root() / "results" / "baselines" / f"{config_path.stem}.txt"
+out_path.parent.mkdir(parents=True, exist_ok=True)
+forget_loss = min(forget_losses).item()
+out_path.write_text(str(forget_loss))
 # %%
