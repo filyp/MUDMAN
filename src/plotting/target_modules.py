@@ -32,7 +32,7 @@ def create_model_comparison_plot_horizontal(
 
     # Create the plot with n subplots side by side
     n_plots = len(datasets)
-    fig, axes = plt.subplots(1, n_plots, figsize=(9, 3.3))
+    fig, axes = plt.subplots(1, n_plots, figsize=(8, 3.3))
 
     # plt.subplots_adjust(wspace=.9)
 
@@ -80,7 +80,7 @@ def create_model_comparison_plot_horizontal(
         # Update yticks for reversed order
         ax.set_yticks(df["pos"])
         ax.set_yticklabels(df["study_name"])
-        ax.set_xlabel("Forget loss after relearning↑")
+        ax.set_xlabel("Forget loss\nafter relearning↑")
         ax.set_title(model_name)
 
         # Start x-axis at 0
@@ -101,9 +101,10 @@ def create_model_comparison_plot_horizontal(
 
     # Adjust layout
     # plt.tight_layout(pad=1.1, rect=[0, 0, 1, 1])  # Added rect parameter to leave right margin
-    # plt.tight_layout()
-    plt.subplots_adjust(wspace=0.8, right=1.05)
-    # plt.subplots_adjust(wspace=0.9, right=1.2)
+    # plt.tight_layout(pad=1)
+    # plt.subplots_adjust(wspace=0.9, right=1.1)
+    # plt.subplots_adjust(wspace=0.8)
+    plt.tight_layout()
 
     return fig, axes
 
