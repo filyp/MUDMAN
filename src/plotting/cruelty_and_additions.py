@@ -19,7 +19,7 @@ plt.style.use("default")  # Reset to default style
 
 # %%
 name_mapping = dict(
-    SIU="SIU",
+    SIU="MUDMAN",
     no_r_momentum="- retain momentum",
     no_adv_decay="- adversary decay",
     no_masking="- masking",
