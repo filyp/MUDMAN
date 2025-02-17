@@ -72,7 +72,7 @@ def main(
     secrets = json.load(open("secret.json"))
     db_url = secrets["db_url"]
     hf_token = secrets["hf_token"]
-    wandb_key = secrets["wandb_key"]  # Make sure to add this to your secret.json
+    wandb_key = secrets["wandb_key"]
     
     remote_func.remote(
         db_url, 

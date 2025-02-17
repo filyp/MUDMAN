@@ -24,8 +24,7 @@ from utils.training import (
 
 plt.style.use("default")  # Reset to default style
 
-db_url = json.load(open(repo_root() / "secret.json"))["db_url"]
-storage = get_storage(db_url)
+storage = get_storage()
 
 # %% get the studies
 multistudy_to_method_stats = dict()
@@ -174,14 +173,16 @@ for n, (multistudy_name, method_stats) in enumerate(multistudy_to_method_stats.i
         repo_root() / "configs" / f"ablations_and_loss2,{multistudy_name}.yaml"
     )
     baseline_path = repo_root() / "results" / "baselines" / f"{config_path.stem}.txt"
-    baseline = float(baseline_path.read_text())
-    # Add baseline
-    ax.axvline(x=baseline, color="black", linestyle="--", alpha=0.3)
+    if baseline_path.exists():
+        baseline = float(baseline_path.read_text())
+        # Add baseline
+        ax.axvline(x=baseline, color="black", linestyle="--", alpha=0.3)
 
     # Calculate the minimum and maximum mean values for the xlim
     max_bar = max(mean for mean, sem in method_stats.values())
     min_bar = min(mean for mean, sem in method_stats.values())
-    min_bar = min(min_bar, baseline)
+    if baseline_path.exists():
+        min_bar = min(min_bar, baseline)
     # margin = (max_bar - min_bar) / 5  # Calculate the margin
     center = (max_bar + min_bar) / 2
     scale = scales[n // 3]
@@ -189,9 +190,10 @@ for n, (multistudy_name, method_stats) in enumerate(multistudy_to_method_stats.i
 
 plt.tight_layout()
 
-# Create and show the plot
-# plt.show()  # Ensure the plot is displayed
-
 
 plot_path = repo_root() / "paper" / "plots" / "ablations_and_loss.pdf"
-fig.savefig(plot_path)
+if plot_path.parent.exists():
+    print(f"Saving plot to {plot_path}")
+    fig.savefig(plot_path)
+else:
+    plt.show()  # Ensure the plot is displayed

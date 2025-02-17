@@ -34,8 +34,8 @@ variants:
   # ! loss functions
   neg_cross_entropy_loss:
     unlearning_loss_fn: neg_cross_entropy
-  neg_entropy_loss:
-    unlearning_loss_fn: neg_entropy
+  # neg_entropy_loss:
+  #   unlearning_loss_fn: neg_entropy
   # logit_loss:
   #   unlearning_loss_fn: correct_logit_minus_avg
 

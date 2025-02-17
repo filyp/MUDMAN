@@ -263,9 +263,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    db_url = json.load(open("secret.json"))["db_url"]
-    storage = get_storage(db_url)
-    # storage = get_storage()
+    storage = get_storage()
 
     with open(args.config_path, "r") as f:
         full_config = yaml.safe_load(f)

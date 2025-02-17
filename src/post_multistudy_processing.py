@@ -14,9 +14,7 @@ from utils.training import (
 
 # %%
 
-db_url = json.load(open(repo_root() / "secret.json"))["db_url"]
-storage = get_storage(db_url)
-# storage = get_storage()
+storage = get_storage()
 
 # config_path = repo_root() / "configs" / "pythia_python.yaml"
 # config_path = repo_root() / "configs" / "smol_cruelty.yaml"

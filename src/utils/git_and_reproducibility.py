@@ -50,34 +50,38 @@ def save_file_and_attach_logger(file_name, study_name):
     logging.info(f"commit hash: {commit_hash()}")
 
 
+def _remote_storage(db_url):
+    return optuna.storages.RDBStorage(
+        url=db_url,
+        engine_kwargs={
+            "pool_size": 20,
+            "max_overflow": 0,
+            "pool_pre_ping": True,
+            "connect_args": {"sslmode": "require"},
+        },
+    )
+
+
 def get_storage(db_url=None):
-    if db_url is None:
-        # on default use local sqlite db
+    if db_url is not None:
+        print(f"Using remote storage: {db_url}")
+        return _remote_storage(db_url)
+    try:
+        db_url = json.load(open(repo_root() / "secret.json"))["db_url"]
+        return _remote_storage(db_url)
+    except (FileNotFoundError, KeyError):
+        print("No secret.json file found, using local storage")
         path = repo_root() / "db.sqlite3"
         path = os.path.relpath(path, Path.cwd())
         return f"sqlite:///{path}"
-    else:
-        # secrets_file = repo_root() / "secret.json"
-        # assert secrets_file.exists(), "secret.json not found"
-        # db_url = json.load(open(secrets_file))["db_url"]
-        return optuna.storages.RDBStorage(
-            url=db_url,
-            engine_kwargs={
-                "pool_size": 20,
-                "max_overflow": 0,
-                "pool_pre_ping": True,
-                "connect_args": {"sslmode": "require"},
-            },
-        )
 
-
-def get_last_study(num=-1):
-    storage = get_storage()
-    # redisstorage may be faster https://github.com/optuna/optuna/pull/974
-    study_summaries = optuna.study.get_all_study_summaries(storage)
-    sorted_studies = sorted(study_summaries, key=lambda s: s.datetime_start)
-    latest_study = sorted_studies[num]
-    return optuna.load_study(study_name=latest_study.study_name, storage=storage)
+# def get_last_study(num=-1):
+#     storage = get_storage()
+#     # redisstorage may be faster https://github.com/optuna/optuna/pull/974
+#     study_summaries = optuna.study.get_all_study_summaries(storage)
+#     sorted_studies = sorted(study_summaries, key=lambda s: s.datetime_start)
+#     latest_study = sorted_studies[num]
+#     return optuna.load_study(study_name=latest_study.study_name, storage=storage)
 
 
 def get_first_line_of_last_commit():

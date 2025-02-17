@@ -17,8 +17,7 @@ from utils.training import get_stats_from_last_n_trials
 
 plt.style.use("default")  # Reset to default style
 
-db_url = json.load(open(repo_root() / "secret.json"))["db_url"]
-storage = get_storage(db_url)
+storage = get_storage()
 
 # %% get the studies
 config_path = repo_root() / "configs" / "wmdp3.yaml"
@@ -87,7 +86,12 @@ method_to_color = {name: color for name, color in zip(_method_names, colors)}
 
 # Get baseline value
 baseline_path = repo_root() / "results" / "baselines" / f"{config_path.stem}.txt"
-baseline = float(baseline_path.read_text())
+if baseline_path.exists():
+    baseline = float(baseline_path.read_text())
+else:
+    print(f"No baseline found for {config_path.stem}, using 0.435 as baseline")
+    baseline = 0.435
+    assert config_path.stem == "wmdp3", "Unknown baseline for this config"
 
 # Calculate the differences from baseline
 differences = [(mean - baseline) * 100 for mean, sem in method_stats.values()]  # Convert to percentage
@@ -125,4 +129,8 @@ plt.tight_layout()
 # %%
 
 plot_path = repo_root() / "paper" / "plots" / "wmdp.pdf"
-fig.savefig(plot_path)
+if plot_path.parent.exists():
+    print(f"Saving plot to {plot_path}")
+    fig.savefig(plot_path)
+else:
+    plt.show()  # Ensure the plot is displayed

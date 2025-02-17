@@ -50,10 +50,7 @@ for multistudy_name in multistudy_names:
     config_path = (
         repo_root() / "configs" / f"ablations_and_loss2,{multistudy_name}.yaml"
     )
-
-    db_url = json.load(open("../secret.json"))["db_url"]
-    storage = get_storage(db_url)
-    # storage = get_storage()
+    storage = get_storage()
 
     with open(config_path, "r") as f:
         full_config = yaml.safe_load(f)
