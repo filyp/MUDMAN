@@ -26,7 +26,7 @@ To locally run a comparison of multiple methods in a single setup, run:
 python src/study_runner.py --config-path configs/EXPERIMENT_NAME.yaml
 ```
 
-To see available additional options, see `python src/study_runner.py --help`.
+To see available additional options, run `python src/study_runner.py --help`. For example you can run less trials, or choose which variant to use, which is useful for parallelization.
 
 ## Remotely
 
@@ -53,7 +53,7 @@ modal run src/modal_runner.py --config-path configs/EXPERIMENT_NAME.yaml
 - `configs/ablations_and_loss2,smol,python.yaml`
 - `configs/ablations_and_loss2,pythia,python.yaml`
 
-On a L40 GPU, experiments for one Llama-3.2-1B yaml should take around 5\*7h (5 methods inside), for SmolLM-135M 5\*9h, and for pythia-14m 5\*4h.
+On an Nvidia L40 GPU, experiments for one Llama-3.2-1B yaml should take around 5\*7h (5 methods inside), for SmolLM-135M 5\*9h, and for pythia-14m 5\*4h.
 
 Then to visualize the results run `python src/plotting/ablations_and_loss.py`.
 
@@ -61,6 +61,6 @@ Then to visualize the results run `python src/plotting/ablations_and_loss.py`.
 
 - `configs/wmdp3.yaml`
 
-On a L40 GPU, it should take around 5\*24h. (Note that this experiment only supports remote runs.)
+On an Nvidia L40 GPU, it should take around 5\*24h. (Note that this experiment only supports remote runs.)
 
 Then to visualize the results run `python src/plotting/wmdp.py`.
