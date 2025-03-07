@@ -163,7 +163,7 @@ if __name__ == "__main__":
         forget_batches=forget_batches,
         f_eval=next(iter(forget_val_batches)),
         r_eval=next(iter(retain_val_batches)),
-        unlearn_steps=300,
+        steps=100,
     )
 
     # relearn
