@@ -18,9 +18,9 @@ def MUDMAN(
     # configuration
     unlearning_rate: float = 1e-1,
     target_modules: list[str] = ["gate_proj"],
-    unlearn_steps: int = 300,
+    steps: int = 100,
     allowed_r_loss: float = float("inf"),
-    fork_every_n_loops: int = 32,
+    fork_every_n_steps: int = 32,
     adv_lr: float = 0.001,
     retaining_rate: float = 0.001,
     retain_momentum: float = 0.9,
@@ -41,9 +41,9 @@ def MUDMAN(
         unlearning_rate: Learning rate for the unlearning updates
             Optimal values may be quite high, because gradients are normalized
         target_modules: List of module names to target for intervention
-        unlearn_steps: Number of unlearning steps to perform
+        steps: Number of unlearning steps to perform
         allowed_r_loss: Maximum allowed loss increase on retain set
-        fork_every_n_loops: Frequency of adversary forking from the main model
+        fork_every_n_steps: Frequency of adversary forking from the main model
         adv_lr: Learning rate for the adversarial updates
         retaining_rate: Learning rate for retain updates
         retain_momentum: Momentum factor for retain gradient accumulation
@@ -76,14 +76,12 @@ def MUDMAN(
     forget_iter = iter(forget_batches)
 
     # ! Unlearning loop
-    passes_per_loop = 4
-    assert unlearn_steps % passes_per_loop == 0
-    for loop_num in range(unlearn_steps // passes_per_loop):
+    for loop_num in range(steps):
         model.train()
         f_input_ids = next(forget_iter)
         r_input_ids = next(retain_iter)
 
-        if loop_num % fork_every_n_loops == 0:
+        if loop_num % fork_every_n_steps == 0:
             for p in interven_params:
                 p.adv_data = p.base_data.clone().detach()
 
@@ -119,11 +117,10 @@ def MUDMAN(
             p.base_data -= unlearning_rate / grad_norm * p.grad  # Normalize & update
 
         # ! Eval current loss
-        _passes_done = (loop_num + 1) * passes_per_loop
-        if _passes_done % 20 == 0:
+        if (loop_num + 1) % 5 == 0:
             for p in interven_params:  # Switch to main model
                 p.data = p.base_data
-            eval_(model, f_eval, r_eval, allowed_r_loss, _passes_done)
+            eval_(model, f_eval, r_eval, allowed_r_loss, loop_num + 1)
 
     return model
 
