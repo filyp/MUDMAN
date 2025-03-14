@@ -89,14 +89,14 @@ def eval_on_mmlu(model, batch_size=16, subset=None):
         # assert pt.allclose(answer_probs.sum(dim=-1), pt.tensor(1.0, dtype=pt.bfloat16)), answer_probs.sum(dim=-1)
         _correct_answers = pt.tensor([ex["answer"] for ex in batch])
 
-        # # for temperature=1
-        # correct_answer_probs = answer_probs[range(len(batch)), _correct_answers]
-        # acc += correct_answer_probs.sum().item()
+        # for temperature=1
+        correct_answer_probs = answer_probs[range(len(batch)), _correct_answers]
+        acc += correct_answer_probs.sum().item()
 
-        # for temperature=0
-        hits = answer_probs.argmax(dim=-1) == _correct_answers
-        acc += hits.sum().item()
-        # print(hits)
+        # # for temperature=0
+        # hits = answer_probs.argmax(dim=-1) == _correct_answers
+        # acc += hits.sum().item()
+        # # print(hits)
 
         del answer_probs, probs, last_token_logits, output
         pt.cuda.empty_cache()

@@ -86,7 +86,7 @@ hyperparams = SimpleNamespace(
     fork_every_n_loops=48,
     retain_momentum=0.95,
     retaining_rate=0.001,
-    unlearning_rate=30e-6,
+    unlearning_rate=15e-6,
     unlearning_loss_fn="neg_entropy",
 )
 # config.unlearning_loss_fn = "neg_cross_entropy"
@@ -150,3 +150,5 @@ _ = relearn_with_retain(
 wandb.finish()
 eval_on_wmdp(model)
 
+
+# %%
