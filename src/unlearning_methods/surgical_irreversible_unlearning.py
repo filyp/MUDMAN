@@ -18,11 +18,11 @@ def surgical_irreversible_unlearning(
     r_eval,
     allowed_r_loss,
     model=None,
-    soft_threshold=None,
+    # soft_threshold=None,
     eval_wmdp_every=None,
 ):
     h.fork_every_n_loops = int(h.fork_every_n_loops)
-    unlearn = True
+    # unlearn = True
     if eval_wmdp_every is not None:
         from utils.wmdp_eval import eval_on_wmdp
 
@@ -113,56 +113,56 @@ def surgical_irreversible_unlearning(
             for p in interven_params:
                 p.adv_data = p.base_data
 
-        if unlearn:
-            # ! relearn the adversary
-            model.zero_grad(set_to_none=True)
-            for p in interven_params:  # switch to adversary
-                p.data = p.adv_data
-            output = model(f_input_ids)
-            if config.train_adversary:
-                loss = cross_entropy_loss(output, f_input_ids)
-                loss.backward(retain_graph=True)
-                for p in interven_params:
-                    assert p.data.data_ptr() == p.adv_data.data_ptr()
-                    # apply adversary update
-                    p.adv_data -= h.adv_lr * p.grad
-                    # decay adversary into base model
-                    p.adv_data *= h.adv_decay
-                    p.adv_data += p.base_data * (1 - h.adv_decay)
-
-            # ! unlearning step with masking
-            # get unlearning grads loss from adversary
-            # reuse the computation graph from previous block
-            model.zero_grad(set_to_none=True)
-            loss_fn = loss_fns[config.unlearning_loss_fn]
-            loss = loss_fn(output, f_input_ids, clip_at)
-            loss.backward()
-            grad_norm = sum(p.grad.norm() ** 2 for p in interven_params) ** 0.5
+        # if unlearn:
+        # ! relearn the adversary
+        model.zero_grad(set_to_none=True)
+        for p in interven_params:  # switch to adversary
+            p.data = p.adv_data
+        output = model(f_input_ids)
+        if config.train_adversary:
+            loss = cross_entropy_loss(output, f_input_ids)
+            loss.backward(retain_graph=True)
             for p in interven_params:
                 assert p.data.data_ptr() == p.adv_data.data_ptr()
+                # apply adversary update
+                p.adv_data -= h.adv_lr * p.grad
+                # decay adversary into base model
+                p.adv_data *= h.adv_decay
+                p.adv_data += p.base_data * (1 - h.adv_decay)
 
-                if config.additional_param_name == "forget_momentum":
-                    p.forget_acc *= h.additional_param
-                    p.forget_acc += p.grad * (1 - h.additional_param)
-                    p.grad = p.forget_acc.clone().detach()
+        # ! unlearning step with masking
+        # get unlearning grads loss from adversary
+        # reuse the computation graph from previous block
+        model.zero_grad(set_to_none=True)
+        loss_fn = loss_fns[config.unlearning_loss_fn]
+        loss = loss_fn(output, f_input_ids, clip_at)
+        loss.backward()
+        grad_norm = sum(p.grad.norm() ** 2 for p in interven_params) ** 0.5
+        for p in interven_params:
+            assert p.data.data_ptr() == p.adv_data.data_ptr()
 
-                if config.use_masking:
-                    mask = p.retain_acc.sign() == p.grad.sign()
-                    p.grad *= mask
+            if config.additional_param_name == "forget_momentum":
+                p.forget_acc *= h.additional_param
+                p.forget_acc += p.grad * (1 - h.additional_param)
+                p.grad = p.forget_acc.clone().detach()
 
-                if config.additional_param_name == "discard_growing_weights":
-                    mask2 = p.base_data.sign() != p.grad.sign()
-                    p.grad[mask2] *= h.additional_param
+            if config.use_masking:
+                mask = p.retain_acc.sign() == p.grad.sign()
+                p.grad *= mask
 
-                # normalize
-                if config.normalize_grads:
-                    p.grad *= total_interven_numel**0.5 / grad_norm
+            if config.additional_param_name == "discard_growing_weights":
+                mask2 = p.base_data.sign() != p.grad.sign()
+                p.grad[mask2] *= h.additional_param
 
-                p.base_data -= h.unlearning_rate * p.grad
+            # normalize
+            if config.normalize_grads:
+                p.grad *= total_interven_numel**0.5 / grad_norm
 
-                if config.additional_param_name == "adv_update":
-                    assert config.train_adversary  # otherwise it may be wrong
-                    p.adv_data -= h.unlearning_rate * p.grad * h.additional_param
+            p.base_data -= h.unlearning_rate * p.grad
+
+            if config.additional_param_name == "adv_update":
+                assert config.train_adversary  # otherwise it may be wrong
+                p.adv_data -= h.unlearning_rate * p.grad * h.additional_param
 
         # ! eval current loss
         _passes_done = (loop_num + 1) * passes_per_loop
@@ -178,20 +178,18 @@ def surgical_irreversible_unlearning(
                 _passes_done,
                 use_wandb=eval_wmdp_every is not None,
             )
-            if soft_threshold is not None and res["retain_loss"] > soft_threshold:
-                if unlearn:
-                    logging.info("unlearning disabled")
-                unlearn = False
-            else:
-                if not unlearn:
-                    logging.info("unlearning enabled")
-                unlearn = True
+            # if soft_threshold is not None and res["retain_loss"] > soft_threshold:
+            #     if unlearn:
+            #         logging.info("unlearning disabled")
+            #     unlearn = False
+            # else:
+            #     if not unlearn:
+            #         logging.info("unlearning enabled")
+            #     unlearn = True
 
         if eval_wmdp_every is not None and _passes_done % eval_wmdp_every == 0:
             accuracy = eval_on_wmdp(model)
-            wandb.log(
-                res | {"wmdp_accuracy": accuracy, "unlearn": unlearn}, step=_passes_done
-            )
+            wandb.log(res | {"wmdp_accuracy": accuracy}, step=_passes_done)
             print(f"accuracy={accuracy}")
 
     for p in interven_params:  # switch to base model

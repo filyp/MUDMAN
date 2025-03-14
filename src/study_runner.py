@@ -168,8 +168,7 @@ def run_study(storage, config_path, variant_num, if_study_exists="fail", n_trial
 
             allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
             model=model,
-            soft_threshold=_init_res["retain_loss"] + config.soft_loss_budget,
-
+            # soft_threshold=_init_res["retain_loss"] + config.soft_loss_budget,
             eval_wmdp_every=config.eval_wmdp_every,
         )
 

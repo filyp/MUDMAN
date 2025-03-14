@@ -59,7 +59,7 @@ Then to visualize the results run `python src/plotting/ablations_and_loss.py`.
 
 ## Experiment names for the Figure "Accuracy on WMDP-Bio"
 
-- `configs/wmdp3.yaml`
+- `configs/wmdp4.yaml`
 
 On an Nvidia L40 GPU, it should take around 5\*24h. (Note that this experiment only supports remote runs.)
 

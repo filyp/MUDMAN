@@ -20,7 +20,7 @@ plt.style.use("default")  # Reset to default style
 storage = get_storage()
 
 # %% get the studies
-config_path = repo_root() / "configs" / "wmdp3.yaml"
+config_path = repo_root() / "configs" / "wmdp4.yaml"
 with open(config_path, "r") as f:
     full_config = yaml.safe_load(f)
 
@@ -91,7 +91,7 @@ if baseline_path.exists():
 else:
     print(f"No baseline found for {config_path.stem}, using 0.435 as baseline")
     baseline = 0.435
-    assert config_path.stem == "wmdp3", "Unknown baseline for this config"
+    assert config_path.stem == "wmdp4", "Unknown baseline for this config"
 
 # Calculate the differences from baseline
 differences = [(mean - baseline) * 100 for mean, sem in method_stats.values()]  # Convert to percentage

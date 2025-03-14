@@ -7,10 +7,10 @@ general_config:
   forget_set_name: pile_bio_forget
   unlearn_steps: 2400  # 20x what the other runs use
   batch_size: 16
-  n_trials: 30
+  n_trials: 60
   normalize_grads: true
   hard_loss_budget: 0.1
-  soft_loss_budget: 0.05
+  # soft_loss_budget: 0.05
   # method specific
   unlearning_loss_fn: neg_cross_entropy
   use_masking: true
