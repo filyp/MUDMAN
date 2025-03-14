@@ -122,7 +122,7 @@ else:
     model = AutoModelForCausalLM.from_pretrained(config.model_id)
 model.config.use_cache = False
 
-_init_res = eval_(AutoModelForCausalLM.from_pretrained(config.model_id), f_eval, r_eval)
+# _init_res = eval_(AutoModelForCausalLM.from_pretrained(config.model_id), f_eval, r_eval)
 
 # ! only relearn with no unlearn
 set_seeds(42)
@@ -139,8 +139,6 @@ _ = relearn_with_retain(
     # allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
     # allowed_mmlu_acc=config.allowed_mmlu_acc,
 )
-# %%
-
 accuracy = eval_on_wmdp(model)
 print(f"wmdp_accuracy={accuracy}")
 

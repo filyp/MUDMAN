@@ -432,3 +432,9 @@ class DisruptionHooks:
 # Usage:
 with DisruptionHooks(model) as cm:
     print("Inside the context manager")
+
+
+
+# %%
+# old baseline for wmdp-bio and llama, when using only 75% of the dataset, not full
+0.4350104821802935

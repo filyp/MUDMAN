@@ -14,6 +14,7 @@ model_id = "meta-llama/Llama-3.2-1B"
 pt.set_default_device("cuda")
 
 # %%
+# note: all this was run on 75% of WMDP-Bio
 # when using temperature=1
 # Smol accuracy: 24.9%
 # Llama accuracy: 32.8%
@@ -27,14 +28,17 @@ pt.set_default_device("cuda")
 # ! interestingly, when using temperature=1, unlearning often increases the accuracy!
 # that may be because it makes these probabilities more extreme?
 
+# when using full dataset, rather than 75%, accuracy goes from
+# 46.96% to 47.21%, so not much difference
+
 # %%
 # test is the only split
-wmdp_bio_dataset_full = load_dataset("cais/wmdp", "wmdp-bio")["test"]
+wmdp_bio_dataset = load_dataset("cais/wmdp", "wmdp-bio")["test"]
 
-# extract a 25% holdout set, just in case
-_split = wmdp_bio_dataset_full.train_test_split(test_size=0.25, shuffle=False)
-wmdp_bio_dataset = _split["train"]
-holdout = _split["test"]
+# # extract a 25% holdout set, just in case
+# _split = wmdp_bio_dataset_full.train_test_split(test_size=0.25, shuffle=False)
+# wmdp_bio_dataset = _split["train"]
+# holdout = _split["test"]
 
 answer_tokens = [" A", " B", " C", " D"]
 
@@ -104,3 +108,9 @@ def eval_on_wmdp(model, batch_size=16, subset=None):
         pt.cuda.empty_cache()
 
     return acc / len(sorted_wmdp_bio)
+
+# # %%
+# model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=pt.bfloat16)
+# eval_on_wmdp(model)
+
+# %%
