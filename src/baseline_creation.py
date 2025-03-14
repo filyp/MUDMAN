@@ -136,9 +136,13 @@ _ = relearn_with_retain(
     # this is very rarely needed, but when it happens, it means
     # relearning was broken, so reject
     # (alternative would be to relearn slower, but that's inefficient)
-    allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
+    # allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
+    # allowed_mmlu_acc=config.allowed_mmlu_acc,
 )
+# %%
+
 accuracy = eval_on_wmdp(model)
+print(f"wmdp_accuracy={accuracy}")
 
 out_path = repo_root() / "results" / "baselines" / f"{config_path.stem}.txt"
 out_path.parent.mkdir(parents=True, exist_ok=True)

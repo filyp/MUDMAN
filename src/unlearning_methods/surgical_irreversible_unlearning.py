@@ -20,11 +20,13 @@ def surgical_irreversible_unlearning(
     model=None,
     # soft_threshold=None,
     eval_wmdp_every=None,
+    allowed_mmlu_acc=None,
 ):
     h.fork_every_n_loops = int(h.fork_every_n_loops)
     # unlearn = True
     if eval_wmdp_every is not None:
         from utils.wmdp_eval import eval_on_wmdp
+        from utils.mmlu_eval import eval_on_mmlu
 
     if model is None:
         if config.model_id in ["meta-llama/Llama-3.2-1B"]:
@@ -188,9 +190,18 @@ def surgical_irreversible_unlearning(
             #     unlearn = True
 
         if eval_wmdp_every is not None and _passes_done % eval_wmdp_every == 0:
-            accuracy = eval_on_wmdp(model)
-            wandb.log(res | {"wmdp_accuracy": accuracy}, step=_passes_done)
-            print(f"accuracy={accuracy}")
+            wmdp_acc = eval_on_wmdp(model)
+            mmlu_acc = eval_on_mmlu(model)
+            wandb.log(
+                res | {"wmdp_accuracy": wmdp_acc, "mmlu_accuracy": mmlu_acc},
+                step=_passes_done,
+            )
+            print(f"wmdp_acc={wmdp_acc}, mmlu_acc={mmlu_acc}")
+
+            if allowed_mmlu_acc is not None and mmlu_acc < allowed_mmlu_acc:
+                logging.info(f"Pruning trial because mmlu accuracy is too low")
+                wandb.finish()
+                raise optuna.TrialPruned()
 
     for p in interven_params:  # switch to base model
         p.data = p.base_data

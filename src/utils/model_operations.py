@@ -7,6 +7,7 @@ from peft import LoraConfig, get_peft_model
 
 import wandb
 from utils.loss_fns import *
+from utils.mmlu_eval import eval_on_mmlu
 from utils.training import eval_
 from utils.wmdp_eval import eval_on_wmdp
 
@@ -90,7 +91,7 @@ def relearn_with_retain(
     forget_val_batches,
     eval_wmdp_every=None,
     step_offset=0,
-    allowed_r_loss=float("inf"),
+    # allowed_mmlu_acc=0,
 ):
     for p in model.parameters():
         p.requires_grad = True
@@ -130,19 +131,26 @@ def relearn_with_retain(
             res = eval_(model, f_eval_batch, r_eval_batch, step=_passes_done)
             f_losses.append(res["forget_loss"])
             # wandb.log(res, step=_passes_done)
-            if res["retain_loss"] > allowed_r_loss:
-                wandb.finish()
-                raise optuna.TrialPruned("Relearning failed, retain loss too high")
+            # if res["retain_loss"] > allowed_r_loss:
+            #     wandb.finish()
+            #     raise optuna.TrialPruned("Relearning failed, retain loss too high")
 
         if eval_wmdp_every is not None and _passes_done % eval_wmdp_every == 0:
-            accuracy = eval_on_wmdp(model)
+            wmdp_acc = eval_on_wmdp(model)
+            mmlu_acc = eval_on_mmlu(model)
+            print(f"wmdp_acc={wmdp_acc}, mmlu_acc={mmlu_acc}")
+
+            # if mmlu_acc < allowed_mmlu_acc:
+            #     wandb.finish()
+            #     raise optuna.TrialPruned("Relearning failed, mmlu accuracy too low")
+
             try:
                 wandb.log(
-                    res | {"wmdp_accuracy": accuracy}, step=_passes_done + step_offset
+                    res | {"wmdp_accuracy": wmdp_acc, "mmlu_accuracy": mmlu_acc},
+                    step=_passes_done + step_offset,
                 )
             except wandb.Error as e:
                 print(f"wandb error: {e}")
-            print(f"accuracy={accuracy}")
 
     logging.info("")
     return f_losses

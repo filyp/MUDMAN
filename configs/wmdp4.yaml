@@ -9,7 +9,8 @@ general_config:
   batch_size: 16
   n_trials: 60
   normalize_grads: true
-  hard_loss_budget: 0.1
+  # hard_loss_budget: 1000000000
+  allowed_mmlu_acc: 0.3516  # base accuarcy is 0.3716
   # soft_loss_budget: 0.05
   # method specific
   unlearning_loss_fn: neg_cross_entropy

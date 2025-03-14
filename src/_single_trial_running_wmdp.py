@@ -30,7 +30,7 @@ from unlearning_methods.surgical_irreversible_unlearning import (
 from utils.data_loading import CachedBatches, dataset_loaders
 from utils.git_and_reproducibility import *
 from utils.loss_fns import loss_fns
-from utils.model_operations import relearn
+from utils.model_operations import relearn, relearn_with_retain
 from utils.training import *
 from utils.wmdp_eval import eval_on_wmdp
 from utils.mmlu_eval import eval_on_mmlu
@@ -114,7 +114,7 @@ accuracy = eval_on_wmdp(model)
 wandb.log(_init_res | {"wmdp_accuracy": accuracy}, step=0)
 
 set_seeds(42)
-model = unlearning_func(
+model = surgical_irreversible_unlearning(
     hyperparams,
     config,
     retain_batches,
@@ -122,10 +122,12 @@ model = unlearning_func(
     f_eval,
     r_eval,
 
-    allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
+    # allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
+    allowed_r_loss=float("inf"),
     model=model,
     # soft_threshold=_init_res["retain_loss"] + config.soft_loss_budget,
     eval_wmdp_every=config.eval_wmdp_every,
+    allowed_mmlu_acc=config.allowed_mmlu_acc,
 )
 
 # %%
@@ -141,7 +143,9 @@ _ = relearn_with_retain(
     # this is very rarely needed, but when it happens, it means
     # relearning was broken, so reject
     # (alternative would be to relearn slower, but that's inefficient)
-    allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
+    # allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
+    # allowed_r_loss=float("inf"),
+    # allowed_mmlu_acc=config.allowed_mmlu_acc,
 )
 wandb.finish()
 eval_on_wmdp(model)

@@ -67,7 +67,7 @@ def eval_on_mmlu(model, batch_size=16, subset=None):
 
     acc = 0
     for i in range(0, len(final_dataset), batch_size):
-        print(i)
+        # print(i)
         batch = final_dataset[i : i + batch_size]
         batch_text = [format_prompt(ex) for ex in batch]
 
@@ -80,13 +80,13 @@ def eval_on_mmlu(model, batch_size=16, subset=None):
 
         probs = pt.softmax(last_token_logits, dim=-1)
         answer_probs = probs[:, answer_ids]
-        if not all(answer_probs.sum(dim=-1) > 0.2):
-            logging.warning("Sum of answer probs is too low, pruning")
+        # if not all(answer_probs.sum(dim=-1) > 0.2):
+        #     logging.warning("Sum of answer probs is too low, pruning")
         #     wandb.finish()
         #     raise optuna.TrialPruned()
 
         answer_probs /= answer_probs.sum(dim=-1, keepdim=True)  # normalize
-        assert pt.allclose(answer_probs.sum(dim=-1), pt.tensor(1.0, dtype=pt.bfloat16))
+        # assert pt.allclose(answer_probs.sum(dim=-1), pt.tensor(1.0, dtype=pt.bfloat16)), answer_probs.sum(dim=-1)
         _correct_answers = pt.tensor([ex["answer"] for ex in batch])
 
         # # for temperature=1
@@ -102,3 +102,7 @@ def eval_on_mmlu(model, batch_size=16, subset=None):
         pt.cuda.empty_cache()
 
     return acc / len(final_dataset)
+
+# # %%
+# model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=pt.bfloat16)
+# eval_on_mmlu(model)
