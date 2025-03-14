@@ -440,3 +440,5 @@ with DisruptionHooks(model) as cm:
 # 0.4350104821802935
 # the new one (on full dataset) is
 # 0.42026708562450904
+# and at temperature=1 (which we finally use), it's
+# 0.30106048703849175
