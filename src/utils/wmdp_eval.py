@@ -30,6 +30,7 @@ pt.set_default_device("cuda")
 
 # when using full dataset, rather than 75%, accuracy goes from
 # 46.96% to 47.21%, so not much difference
+# but retraining (even w/o unlearning) makes it go down to 42.02% (on full dataset)
 
 # %%
 # test is the only split

@@ -437,4 +437,6 @@ with DisruptionHooks(model) as cm:
 
 # %%
 # old baseline for wmdp-bio and llama, when using only 75% of the dataset, not full
-0.4350104821802935
+# 0.4350104821802935
+# the new one (on full dataset) is
+# 0.42026708562450904
