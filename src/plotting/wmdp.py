@@ -112,14 +112,15 @@ ax.set_yticks([positions_dict[name] for name in method_stats.keys()])
 ax.set_yticklabels([titles_dict[name] for name in method_stats.keys()])
 
 # Format x-axis ticks to show percentages
-ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:.0f}%'))
+# ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:.0f}%'))
 
 # Remove spines
 ax.spines["top"].set_visible(False)
 ax.spines["left"].set_visible(False)
 
 # Set xlim (keeping same range but inverted from baseline)
-ax.set_xlim(36, baseline * 100)  # Convert limits to percentages
+print(baseline * 100)
+ax.set_xlim(29.4, baseline * 100)  # Convert limits to percentages
 ax.yaxis.tick_right()
 
 # ax.yaxis.set_label_position("right")
@@ -128,7 +129,7 @@ plt.tight_layout()
 
 # %%
 
-plot_path = repo_root() / "paper" / "plots" / "wmdp.pdf"
+plot_path = repo_root() / "paper" / "plots" / "wmdp_control_mmlu_both_temp_1.pdf"  # todo update this
 if plot_path.parent.exists():
     print(f"Saving plot to {plot_path}")
     fig.savefig(plot_path)
