@@ -27,6 +27,24 @@ pt.set_default_device("cuda")
 # test is the only split
 mmlu_dataset = load_dataset("cais/mmlu", "all", split="validation")
 
+# filter out all the subcategories of biology and health
+# keep even the ones like anatomy, clinical_knowledge and professional_medicine,
+# because they contain some questions about molecular biology
+categories_to_reject = {
+    "college_biology",
+    "college_medicine",
+    "high_school_biology",
+    "human_aging",
+    "medical_genetics",
+    "nutrition",
+    "professional_medicine",
+    "virology",
+    "anatomy",
+    "clinical_knowledge",
+}
+# filter out the ones in the categories_to_reject
+filtered_mmlu = [ex for ex in mmlu_dataset if ex["subject"] not in categories_to_reject]
+
 
 def format_prompt(ex):
     # taken from https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/tasks/wmdp/_default_template_yaml
@@ -42,7 +60,7 @@ Answer:"""
 
 
 # sort wmdp_bio by the prompt length
-sorted_mmlu_dataset = sorted(mmlu_dataset, key=lambda ex: len(format_prompt(ex)))
+sorted_mmlu = sorted(filtered_mmlu, key=lambda ex: len(format_prompt(ex)))
 
 answer_tokens = [" A", " B", " C", " D"]
 
@@ -61,9 +79,9 @@ def eval_on_mmlu(model, batch_size=16, subset=None, temperature=1):
     # answer_ids = pt.tensor([tokenizer.encode(t) for t in answer_tokens]).reshape(4)
 
     if subset is not None:
-        final_dataset = sorted_mmlu_dataset[:subset]
+        final_dataset = sorted_mmlu[:subset]
     else:
-        final_dataset = sorted_mmlu_dataset
+        final_dataset = sorted_mmlu
 
     acc = 0
     for i in range(0, len(final_dataset), batch_size):

@@ -1,3 +1,4 @@
+# %%
 """
 This file records baseline values of running only relearning,
 without applying any unlearning methods. This is in contrast
@@ -8,6 +9,8 @@ methods and their configurations.
 # %%
 # # necessary for determinism:
 import os
+
+from utils.mmlu_eval import eval_on_mmlu
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 # os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":16:8"  # less mem but slower
@@ -121,6 +124,11 @@ if config.model_id in ["meta-llama/Llama-3.2-1B"]:
 else:
     model = AutoModelForCausalLM.from_pretrained(config.model_id)
 model.config.use_cache = False
+
+
+# wmdp_accuracy = eval_on_wmdp(model)
+mmlu_accuracy = eval_on_mmlu(model)
+print(f"mmlu_accuracy={mmlu_accuracy}")
 
 # _init_res = eval_(AutoModelForCausalLM.from_pretrained(config.model_id), f_eval, r_eval)
 

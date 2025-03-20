@@ -5,24 +5,24 @@ general_config:
   model_id: meta-llama/Llama-3.2-1B
   retain_set_name: pile_bio_retain
   forget_set_name: pile_bio_forget
-  unlearn_steps: 2400  # 20x what the other runs use
+  # unlearn_steps: 2400  # 20x what the other runs use
+  unlearn_steps: 3600  # 30x what the other runs use
   batch_size: 16
   n_trials: 60
   normalize_grads: true
   # hard_loss_budget: 1000000000
-  # allowed_mmlu_acc: 0.3316  # base accuarcy is 0.3716
-  allowed_mmlu_acc: 0.2814  # base accuarcy is 0.3014
+  allowed_mmlu_acc: 0.2773  # base accuarcy is 0.2973 (and for temp=0 it's 0.3625)
   # soft_loss_budget: 0.05
   # method specific
   unlearning_loss_fn: neg_cross_entropy
   use_masking: true
   train_adversary: true
   additional_param_name: null
-  eval_wmdp_every: 240
+  eval_wmdp_every: 180 
 
 relearn_config:
-  relearn_steps: 1200  # 10x what the other runs use
-  relearn_lr: 1.0e-3
+  relearn_steps: 1800  # 15x what the other runs use
+  relearn_lr: 3.0e-4
 
 hyperparams:
   additional_param: None  # on default don't use this
@@ -30,7 +30,7 @@ hyperparams:
   adv_lr: 0.001
   fork_every_n_loops: 48
   retain_momentum: 0.95
-  retaining_rate: 0.001
+  retaining_rate: [3.e-5, 3.e-3, true]
   unlearning_rate: [1.e-8, 1.e-1, true]
 
 variants:
