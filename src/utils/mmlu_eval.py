@@ -48,7 +48,7 @@ answer_tokens = [" A", " B", " C", " D"]
 
 
 # %%
-def eval_on_mmlu(model, batch_size=16, subset=None):
+def eval_on_mmlu(model, batch_size=16, subset=None, temperature=1):
     assert model.config.name_or_path == "meta-llama/Llama-3.2-1B"
     pt.cuda.empty_cache()
 
@@ -89,19 +89,21 @@ def eval_on_mmlu(model, batch_size=16, subset=None):
         # assert pt.allclose(answer_probs.sum(dim=-1), pt.tensor(1.0, dtype=pt.bfloat16)), answer_probs.sum(dim=-1)
         _correct_answers = pt.tensor([ex["answer"] for ex in batch])
 
-        # for temperature=1
-        correct_answer_probs = answer_probs[range(len(batch)), _correct_answers]
-        acc += correct_answer_probs.sum().item()
-
-        # # for temperature=0
-        # hits = answer_probs.argmax(dim=-1) == _correct_answers
-        # acc += hits.sum().item()
-        # # print(hits)
+        if temperature == 1:
+            correct_answer_probs = answer_probs[range(len(batch)), _correct_answers]
+            acc += correct_answer_probs.sum().item()
+        elif temperature == 0:
+            hits = answer_probs.argmax(dim=-1) == _correct_answers
+            acc += hits.sum().item()
+            # print(hits)
+        else:
+            raise ValueError(f"Not supported temperature: {temperature}")
 
         del answer_probs, probs, last_token_logits, output
         pt.cuda.empty_cache()
 
     return acc / len(final_dataset)
+
 
 # # %%
 # model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=pt.bfloat16)

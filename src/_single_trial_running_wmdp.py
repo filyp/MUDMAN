@@ -47,7 +47,7 @@ plt.style.use("default")
 
 # %%
 # load YAML configuration
-config_path = repo_root() / "configs" / "wmdp4.yaml"
+config_path = repo_root() / "configs" / "wmdp5.yaml"
 with open(config_path, "r") as f:
     full_config = yaml.safe_load(f)
 
