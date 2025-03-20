@@ -62,6 +62,12 @@ for variant_name in full_config["variants"]:
     except KeyError:
         print(f"Study {study_name} not found")
 
+# check if optimal values are near range edges
+for study in studies:
+    make_sure_optimal_values_are_not_near_range_edges(study)
+
+
+# %%
 # # %% slice plot
 plot = stacked_slice_plot(studies, all_trials, show_additional_param=False)
 dir_name = repo_root() / "paper" / "plots" / "slice"
@@ -74,9 +80,12 @@ dir_name = repo_root() / "paper" / "plots" / "history"
 dir_name.mkdir(parents=True, exist_ok=True)
 plot.write_image(dir_name / f"{multistudy_name}.pdf")
 
+
+
+
+
+
 # %% get the studies
-
-
 multistudy_names = [
     "llama32,pile-bio",
     "smol,pile-bio",
@@ -131,6 +140,9 @@ for multistudy_name in multistudy_names:
     dir_name = repo_root() / "paper" / "plots" / "history"
     dir_name.mkdir(parents=True, exist_ok=True)
     plot.write_image(dir_name / f"{multistudy_name}.pdf")
+
+    for study in studies:
+        make_sure_optimal_values_are_not_near_range_edges(study)
     
     # save_img(plot, f"{multistudy_name}_history_and_importance")
 

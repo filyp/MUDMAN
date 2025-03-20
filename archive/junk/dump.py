@@ -444,3 +444,5 @@ with DisruptionHooks(model) as cm:
 # 0.30106048703849175
 # after using wmdp temp=0, and smaller relearning rate, the baseline is now:
 # wmdp_accuracy=0.44540455616653574
+# and after longer relearning, it's:
+# 0.45011783189316573
