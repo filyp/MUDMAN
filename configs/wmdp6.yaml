@@ -30,8 +30,8 @@ hyperparams:
   adv_lr: 0.001
   fork_every_n_loops: 48
   retain_momentum: 0.95
-  retaining_rate: [3.e-5, 3.e-3, true]
-  unlearning_rate: [1.e-8, 1.e-4, true]
+  retaining_rate: [3.e-6, 3.e-3, true]
+  unlearning_rate: [3.e-9, 1.e-4, true]
 
 variants:
 
@@ -52,7 +52,7 @@ variants:
     unlearning_loss_fn: neg_entropy
   no_normalization_ent:
     normalize_grads: false
-    unlearning_rate: [1.e-5, 1.e-1, true]
+    unlearning_rate: [3.e-6, 1.e-1, true]
     unlearning_loss_fn: neg_entropy
 
   # # ! ablations
@@ -76,4 +76,4 @@ variants:
     additional_param: [1, 1, false]
     normalize_grads: false
     # because it uses no normalization
-    unlearning_rate: [1.e-5, 1.e-1, true]
+    unlearning_rate: [3.e-6, 1.e-1, true]
