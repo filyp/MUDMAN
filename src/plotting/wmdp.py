@@ -20,7 +20,7 @@ plt.style.use("default")  # Reset to default style
 storage = get_storage()
 
 # %% get the studies
-config_path = repo_root() / "configs" / "wmdp5.yaml"
+config_path = repo_root() / "configs" / "wmdp6.yaml"
 with open(config_path, "r") as f:
     full_config = yaml.safe_load(f)
 
@@ -129,7 +129,7 @@ plt.tight_layout()
 
 # %%
 
-plot_path = repo_root() / "paper" / "plots" / "wmdp_control_mmlu_both_temp_1.pdf"  # todo update this
+plot_path = repo_root() / "paper" / "plots" / "wmdp5_2pp_allowance.pdf"  # todo update this
 if plot_path.parent.exists():
     print(f"Saving plot to {plot_path}")
     fig.savefig(plot_path)

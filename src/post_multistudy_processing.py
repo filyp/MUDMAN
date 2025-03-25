@@ -26,7 +26,7 @@ storage = get_storage()
 # config_path = repo_root() / "configs" / "ablations_and_loss,smol,python.yaml"
 
 
-config_path = repo_root() / "configs" / "wmdp5.yaml"
+config_path = repo_root() / "configs" / "wmdp6.yaml"
 
 # study_summaries = optuna.study.get_all_study_summaries(storage)
 # sorted_studies = sorted(study_summaries, key=lambda s: s.datetime_start)

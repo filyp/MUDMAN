@@ -95,7 +95,7 @@ for multistudy_name in multistudy_names:
     out_path.write_text(str(forget_loss))
 
 # %%
-config_path = repo_root() / "configs" / "wmdp5.yaml"
+config_path = repo_root() / "configs" / "wmdp6.yaml"
 
 with open(config_path, "r") as f:
     full_config = yaml.safe_load(f)
