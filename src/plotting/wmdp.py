@@ -20,7 +20,7 @@ plt.style.use("default")  # Reset to default style
 storage = get_storage()
 
 # %% get the studies
-config_path = repo_root() / "configs" / "wmdp6.yaml"
+config_path = repo_root() / "configs" / "wmdp7.yaml"
 with open(config_path, "r") as f:
     full_config = yaml.safe_load(f)
 
@@ -41,7 +41,7 @@ for variant_name in full_config["variants"]:
     # Get stats for the last N trials instead of just best trial
     trials = study.get_trials()
     markdown_line, last_n_mean, last_n_sem = get_stats_from_last_n_trials(
-        study, trials, n=10
+        study, trials, n=5
     )
     method_stats[variant_name] = (last_n_mean, last_n_sem)
     # method_stats[variant_name] = study.best_trial.value
@@ -120,7 +120,7 @@ ax.spines["left"].set_visible(False)
 
 # Set xlim (keeping same range but inverted from baseline)
 print(baseline * 100)
-ax.set_xlim(29.4, baseline * 100)  # Convert limits to percentages
+ax.set_xlim(43, baseline * 100)  # Convert limits to percentages
 ax.yaxis.tick_right()
 
 # ax.yaxis.set_label_position("right")
@@ -129,7 +129,7 @@ plt.tight_layout()
 
 # %%
 
-plot_path = repo_root() / "paper" / "plots" / "wmdp5_2pp_allowance.pdf"  # todo update this
+plot_path = repo_root() / "paper" / "plots" / "wmdp7_1pp_allowance.pdf"  # todo update this
 if plot_path.parent.exists():
     print(f"Saving plot to {plot_path}")
     fig.savefig(plot_path)

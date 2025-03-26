@@ -62,15 +62,6 @@ def correct_logit_minus_avg_loss(output, input_ids, clip_at=0):
     return true_logits.mean()
 
 
-loss_fns = dict(
-    cross_entropy=cross_entropy_loss,
-    neg_cross_entropy=neg_cross_entropy_loss,
-    neg_entropy=neg_entropy_loss,
-    correct_logit_minus_avg=correct_logit_minus_avg_loss,
-    stream_activation=stream_activation_loss,
-)
-
-
 def circuit_breaker_forget_loss(
     model,
     forget_input_ids,
@@ -247,3 +238,20 @@ def circuit_breaker_retain_loss(
 #     # ! invert the probability
 #     losses = -pt.log(1 - true_probs)
 #     return losses.mean()
+
+
+loss_fns = dict(
+    cross_entropy=cross_entropy_loss,
+    neg_cross_entropy=neg_cross_entropy_loss,
+    neg_entropy=neg_entropy_loss,
+    correct_logit_minus_avg=correct_logit_minus_avg_loss,
+    stream_activation=stream_activation_loss,
+)
+
+
+# # simpler way to get all the loss functions
+# loss_fns = {
+#     name: obj
+#     for name, obj in globals().items()
+#     if callable(obj) and not name.startswith("_") and obj.__module__ == __name__
+# }
