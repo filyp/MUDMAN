@@ -150,7 +150,7 @@ def run_study(storage, config_path, variant_num, if_study_exists="fail", n_trial
         )
 
         wandb.init(
-            project="wmdp-eval4",
+            project="wmdp7",
             group=variant_name,
             name=f"{variant_name}-{trial.number}",
         )

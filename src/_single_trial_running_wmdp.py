@@ -106,7 +106,7 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 
 wandb.init(
-    project="wmdp-eval4",
+    project="wmdp7-manual-run",
     group="manual-run",
     name="manual-run",
 )
