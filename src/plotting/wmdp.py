@@ -41,7 +41,7 @@ for variant_name in full_config["variants"]:
     # Get stats for the last N trials instead of just best trial
     trials = study.get_trials()
     markdown_line, last_n_mean, last_n_sem = get_stats_from_last_n_trials(
-        study, trials, n=20
+        study, trials, n=30
     )
     method_stats[variant_name] = (last_n_mean, last_n_sem)
     # method_stats[variant_name] = study.best_trial.value

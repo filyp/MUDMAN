@@ -86,35 +86,30 @@ hyperparams = SimpleNamespace(
     fork_every_n_loops=48,
     retain_momentum=0.95,
     retaining_rate=0.001,
-    unlearning_rate=15e-6,
-    unlearning_loss_fn="neg_entropy",
+    # unlearning_rate=10e-6,
+    unlearning_rate=1e-6,
 )
-# config.unlearning_loss_fn = "neg_cross_entropy"
-# config.unlearning_loss_fn = "correct_logit_minus_avg"
-# config.train_adversary = True
+config.unlearning_loss_fn = "neg_entropy"
+config.use_masking = False
+# config.use_masking = True
+
 # note, not training adverary results in higher base_r loss
-
-# config.unlearn_steps = 30
-# del model
 pt.cuda.empty_cache()
-
-# %%
-
 
 model = AutoModelForCausalLM.from_pretrained(
     config.model_id, torch_dtype=pt.bfloat16
 )
 
-wandb.init(
-    project="wmdp7-manual-run",
-    group="manual-run",
-    name="manual-run",
-)
-accuracy = eval_on_wmdp(model)
-wandb.log(_init_res | {"wmdp_accuracy": accuracy}, step=0)
+# wandb.init(
+#     project="wmdp7-manual-run",
+#     group="manual-run",
+#     name="manual-run",
+# )
+# accuracy = eval_on_wmdp(model)
+# wandb.log(_init_res | {"wmdp_accuracy": accuracy}, step=0)
 
 set_seeds(42)
-model = surgical_irreversible_unlearning(
+model, _results = surgical_irreversible_unlearning(
     hyperparams,
     config,
     retain_batches,
@@ -126,29 +121,59 @@ model = surgical_irreversible_unlearning(
     allowed_r_loss=float("inf"),
     model=model,
     # soft_threshold=_init_res["retain_loss"] + config.soft_loss_budget,
-    eval_wmdp_every=config.eval_wmdp_every,
+    # eval_wmdp_every=config.eval_wmdp_every,
+    eval_wmdp_every=9999999,
     allowed_mmlu_acc=config.allowed_mmlu_acc,
 )
 
-# %%
-
-set_seeds(42)
-_ = relearn_with_retain(
-    model,
-    relearn_config,
-    retain_val_batches,
-    forget_val_batches,
-    eval_wmdp_every=config.eval_wmdp_every,
-    step_offset=config.unlearn_steps,
-    # this is very rarely needed, but when it happens, it means
-    # relearning was broken, so reject
-    # (alternative would be to relearn slower, but that's inefficient)
-    # allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
-    # allowed_r_loss=float("inf"),
-    # allowed_mmlu_acc=config.allowed_mmlu_acc,
-)
-wandb.finish()
-eval_on_wmdp(model)
+# set_seeds(42)
+# _ = relearn_with_retain(
+#     model,
+#     relearn_config,
+#     retain_val_batches,
+#     forget_val_batches,
+#     eval_wmdp_every=config.eval_wmdp_every,
+#     step_offset=config.unlearn_steps,
+#     # this is very rarely needed, but when it happens, it means
+#     # relearning was broken, so reject
+#     # (alternative would be to relearn slower, but that's inefficient)
+#     # allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
+#     # allowed_r_loss=float("inf"),
+#     # allowed_mmlu_acc=config.allowed_mmlu_acc,
+# )
+# wandb.finish()
+# eval_on_wmdp(model)
 
 
 # %%
+# plot results
+
+import matplotlib.pyplot as plt
+
+plt.style.use("default")  # Reset to default style
+
+x = [r["step"] for r in _results]
+y1 = [r["retain_loss"].item() for r in _results]
+y2 = [r["forget_loss"].item() for r in _results]
+
+fig, ax = plt.subplots(figsize=(2.6, 2.6))
+ax.plot(x, y1, label="retain loss")
+ax.plot(x, y2, label="forget loss")
+ax.legend()
+ax.set_xlabel("Step")
+
+# Add tight layout with padding to prevent clipping
+plt.tight_layout(pad=1.1)  # Adjust the padding value as needed
+
+# Save the figure before showing it
+plot_path = repo_root() / "paper" / "plots" / "logo" / "no_masking.pdf"
+# plot_path = repo_root() / "paper" / "plots" / "logo" / "masking.pdf"
+plt.savefig(plot_path, bbox_inches='tight')  # Use bbox_inches='tight' to include all elements
+
+# Now show it (this will clear the figure)
+plt.show()
+
+# note that the one with masking uses 10x the unlearning rate
+
+
+

@@ -79,6 +79,7 @@ def surgical_irreversible_unlearning(
     )
     _eval_counter = 0
     assert config.unlearn_steps % passes_per_loop == 0
+    # _results = []
     for loop_num in range(config.unlearn_steps // passes_per_loop):
         model.train()
         f_input_ids = next(forget_iter)
@@ -180,6 +181,7 @@ def surgical_irreversible_unlearning(
                 _passes_done,
                 use_wandb=eval_wmdp_every is not None,
             )
+            # _results.append(res | {"step": _passes_done})
             # if soft_threshold is not None and res["retain_loss"] > soft_threshold:
             #     if unlearn:
             #         logging.info("unlearning disabled")
@@ -206,4 +208,5 @@ def surgical_irreversible_unlearning(
     for p in interven_params:  # switch to base model
         p.data = p.base_data
 
+    # return model, _results
     return model
