@@ -7,7 +7,7 @@ general_config:
   forget_set_name: pile_bio_forget
   unlearn_steps: 480  # 4x what the other runs use
   batch_size: 16
-  n_trials: 100
+  n_trials: 200
   normalize_grads: true
   # hard_loss_budget: 1000000000
   allowed_mmlu_acc: 0.2873  # base accuarcy is 0.2973, so allow 0.5% drop
