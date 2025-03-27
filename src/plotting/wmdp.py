@@ -120,7 +120,7 @@ ax.spines["left"].set_visible(False)
 
 # Set xlim (keeping same range but inverted from baseline)
 print(baseline * 100)
-ax.set_xlim(43, baseline * 100)  # Convert limits to percentages
+ax.set_xlim(41, baseline * 100)  # Convert limits to percentages
 ax.yaxis.tick_right()
 
 # ax.yaxis.set_label_position("right")

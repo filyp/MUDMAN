@@ -17,7 +17,7 @@ general_config:
   use_masking: true
   train_adversary: true
   additional_param_name: null
-  eval_wmdp_every: 120 
+  eval_wmdp_every: 120  # this should have been 240, bc it takes too much time
 
 relearn_config:
   relearn_steps: 240  # 2x what the other runs use

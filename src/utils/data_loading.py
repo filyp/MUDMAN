@@ -162,3 +162,12 @@ class CachedBatches:
             new_item = get_batch(self.base_iter, self.batch_size)
             self.cache.append(new_item)
             yield new_item
+
+
+# other datasets
+# https://huggingface.co/datasets/lapisrocks/pile-bio
+# https://huggingface.co/datasets/lapisrocks/camel-bio
+#     https://huggingface.co/datasets/camel-ai/biology
+#     this is the original, uncut - better to use it
+# https://huggingface.co/datasets/lapisrocks/magpie-bio-filtered
+#     it's not really bio, it's just instruction retain set
