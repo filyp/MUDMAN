@@ -74,14 +74,13 @@ dir_name = repo_root() / "paper" / "plots" / "slice"
 dir_name.mkdir(parents=True, exist_ok=True)
 plot.write_image(dir_name / f"{multistudy_name}.pdf")
 
+# %%
+# plot making must be separated to this new cell to remove "loading mathjax"
 # # %% history plots
 plot = stacked_history_plots(studies, all_trials)
 dir_name = repo_root() / "paper" / "plots" / "history"
 dir_name.mkdir(parents=True, exist_ok=True)
 plot.write_image(dir_name / f"{multistudy_name}.pdf")
-
-
-
 
 
 
