@@ -10,7 +10,7 @@ general_config:
   n_trials: 300
   normalize_grads: true
   # hard_loss_budget: 1000000000
-  allowed_mmlu_acc: 0.2873  # base accuarcy is 0.2973, so allow 0.5% drop
+  allowed_mmlu_acc: 0.2873  # base accuarcy is 0.2973, so allow 1% drop
   # soft_loss_budget: 0.05
   # method specific
   unlearning_loss_fn: neg_cross_entropy
