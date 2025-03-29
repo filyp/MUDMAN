@@ -63,5 +63,7 @@ for _ in range(1000):
 
     # turns out the each vector position's absolute value is strictly smaller for Disruption Masking
     assert (np.abs(c) > np.abs(d)).all()
+    assert (np.abs(b) >= np.abs(d)).all()
+    # assert (np.abs(b) >= np.abs(c)).all()  # this one fails!
 
 # %%
