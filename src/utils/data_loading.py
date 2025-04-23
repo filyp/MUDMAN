@@ -1,7 +1,12 @@
 import json
 import re
+import shutil
+import zipfile
+from pathlib import Path
 
 import torch as pt
+from huggingface_hub import hf_hub_download
+
 from datasets import IterableDataset, IterableDatasetDict, load_dataset
 
 
@@ -134,6 +139,71 @@ def load_pile_bio_retain(tokenizer):
     return prepare_dataset(
         pile_bio_retain, tokenizer, lambda ex: {"text": ex["txt_chunk"]}
     )
+
+
+# # topics = dataset.unique("topic;")
+# # as estimated by Claude 3.7 Sonnet in relation to bio-terrorism:
+camel_topic_risk_ratings = {
+    "Microbiology": 5,
+    "Biotechnology": 5,
+    "Virology": 5,
+    "Genetics": 5,
+    "Biochemistry": 4,
+    "Immunology": 3,
+    "Mycology": 3,
+    "Parasitology": 3,
+    "Cell biology": 3,
+    "Biostatistics": 2,
+    "Physiology": 2,
+    "Entomology": 2,
+    "Evolution": 2,
+    "Ecology": 2,
+    "Biophysics": 2,
+    "Zoology": 1,
+    "Neurobiology": 1,
+    "Taxonomy": 1,
+    "Anatomy": 1,
+    "Biomechanics": 1,
+    "Paleontology": 1,
+    "Botany": 1,
+    "Marine biology": 1,
+    "Endocrinology": 1,
+    "Biogeography": 1,
+}
+def _load_camel_bio_topics(topics="all"):
+    if topics != "all":
+        for topic in topics:
+            assert topic in camel_topic_risk_ratings
+    # dataset = load_dataset("camel-ai/biology", split="train")  # this is really slow
+    path = hf_hub_download(
+        repo_id="camel-ai/biology",
+        repo_type="dataset",
+        filename="biology.zip",
+        # local_dir="datasets/",
+        # local_dir_use_symlinks=False,
+    )
+
+    # Get the path to the downloaded file
+    zip_path = Path(path)
+    # Create an extraction directory in the same parent folder
+    extract_dir = zip_path.parent / "extracted"
+    # Delete if exists
+    if extract_dir.exists():
+        shutil.rmtree(extract_dir)
+    extract_dir.mkdir(exist_ok=True)
+    # Extract the zip file
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(extract_dir)
+
+    # Find the extracted data file(s)
+    # Assuming there's a JSON file with the data
+    l_str = [str(path) for path in extract_dir.glob("**/*.json")]
+    # Create a dataset from the extracted data
+    dataset = load_dataset("json", data_files=l_str, split="train")
+    if topics == "all":
+        return dataset
+    else:
+        return dataset.filter(lambda x: x["topic;"] in topics)
 
 
 dataset_loaders = dict(

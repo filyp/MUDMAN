@@ -5,7 +5,7 @@ import torch as pt
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-model_id = "meta-llama/Llama-3.2-1B"
+# model_id = "meta-llama/Llama-3.2-1B"
 # model_id = "EleutherAI/pythia-14m"
 # model_id = "HuggingFaceTB/SmolLM-135M"
 
@@ -67,10 +67,10 @@ answer_tokens = [" A", " B", " C", " D"]
 
 # %%
 def eval_on_mmlu(model, batch_size=16, subset=None, temperature=1):
-    assert model.config.name_or_path == "meta-llama/Llama-3.2-1B"
+    assert model.config.name_or_path in ["meta-llama/Llama-3.2-1B", "meta-llama/Llama-3.2-3B"]  # fmt: skip
     pt.cuda.empty_cache()
 
-    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-1B")
+    tokenizer = AutoTokenizer.from_pretrained(model.config.name_or_path)
     tokenizer.pad_token = tokenizer.eos_token
 
     # note that this assumes start-of-sequence token is used (which is true for llama)
@@ -99,6 +99,7 @@ def eval_on_mmlu(model, batch_size=16, subset=None, temperature=1):
         probs = pt.softmax(last_token_logits, dim=-1)
         answer_probs = probs[:, answer_ids]
         # if not all(answer_probs.sum(dim=-1) > 0.2):
+        #     raise ValueError("Sum of answer probs is too low")
         #     logging.warning("Sum of answer probs is too low, pruning")
         #     wandb.finish()
         #     raise optuna.TrialPruned()

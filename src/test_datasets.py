@@ -1,131 +1,95 @@
 # %%
-import zipfile
-from pathlib import Path
-
 import torch as pt
-from huggingface_hub import hf_hub_download
-
-from datasets import IterableDataset, IterableDatasetDict, load_dataset
-
-# %%
-# dataset = load_dataset("camel-ai/biology", split="train")  # this is really slow
-
-path = hf_hub_download(
-    repo_id="camel-ai/biology",
-    repo_type="dataset",
-    filename="biology.zip",
-    # local_dir="datasets/",
-    # local_dir_use_symlinks=False,
-)
-print(path)
-
-# Get the path to the downloaded file
-zip_path = Path(path)
-# Create an extraction directory in the same parent folder
-extract_dir = zip_path.parent / "extracted"
-extract_dir.mkdir(exist_ok=True)
-
-# Extract the zip file
-with zipfile.ZipFile(zip_path, "r") as zip_ref:
-    zip_ref.extractall(extract_dir)
-
-# Find the extracted data file(s)
-# Assuming there's a JSON file with the data
-l_str = [str(path) for path in extract_dir.glob("**/*.json")]
-# create a dataset from the extracted data
-dataset = load_dataset("json", data_files=l_str, split="train")
-
-# %%
-# topics = dataset.unique("topic;")
-# as estimated by Claude 3.7 Sonnet in relation to bio-terrorism:
-topic_risk_ratings = {
-    "Microbiology": 5,
-    "Biotechnology": 5,
-    "Virology": 5,
-    "Genetics": 5,
-    "Biochemistry": 4,
-    "Immunology": 3,
-    "Mycology": 3,
-    "Parasitology": 3,
-    "Cell biology": 3,
-    "Biostatistics": 2,
-    "Physiology": 2,
-    "Entomology": 2,
-    "Evolution": 2,
-    "Ecology": 2,
-    "Biophysics": 2,
-    "Zoology": 1,
-    "Neurobiology": 1,
-    "Taxonomy": 1,
-    "Anatomy": 1,
-    "Biomechanics": 1,
-    "Paleontology": 1,
-    "Botany": 1,
-    "Marine biology": 1,
-    "Endocrinology": 1,
-    "Biogeography": 1,
-}
-
-# %%
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-model_id = "roneneldan/TinyStories-33M"
-model = AutoModelForCausalLM.from_pretrained(model_id)
-# %%
-subset = dataset.filter(lambda x: x["topic;"] == "Virology")
-# %%
-ex = subset[11]
-print(ex["message_1"])
-print(ex["message_2"])
+import wandb
+from datasets import IterableDataset, IterableDatasetDict, load_dataset
+from utils.data_loading import _load_camel_bio_topics
+from utils.loss_fns import cross_entropy_loss
+from utils.mmlu_eval import eval_on_mmlu
+from utils.wmdp_eval import eval_on_wmdp
 
+pt.set_default_device("cuda")
 
 # %%
-# Concatenate message_1 and message_2
-full_message = ex["message_1"] + "\n" + ex["message_2"]
 
-# Tokenize the message
+model_id = "meta-llama/Llama-3.2-3B"
+model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=pt.bfloat16)
 tokenizer = AutoTokenizer.from_pretrained(model_id)
-inputs = tokenizer(full_message, return_tensors="pt")
-input_ids = inputs.input_ids
+context_len = 200
+batch_size = 4
 
-# Get model predictions
-with pt.no_grad():
-    outputs = model(input_ids)
-    logits = outputs.logits
 
-# Calculate probabilities for each token
-# For each position, we want the probability of the actual next token
-probs = []
-for i in range(input_ids.shape[1] - 1):
-    next_token_id = input_ids[0, i + 1].item()
-    next_token_logits = logits[0, i, :]
-    next_token_probs = pt.softmax(next_token_logits, dim=0)
-    prob = next_token_probs[next_token_id].item()
-    probs.append(prob)
+# %%
+def yield_batches(dataset, format_fn):
+    batch = []
+    for ex in dataset:
+        full_message = format_fn(ex)
 
-# Add a dummy probability for the last token (no next token to predict)
-probs.append(1.0)
+        tokens = tokenizer(full_message, return_tensors="pt")["input_ids"].squeeze()
+        # print(tokens.shape)
+        # skip short examples, and truncate to context_len
+        if len(tokens) < context_len:
+            continue
+        tokens = tokens[:context_len]
+        batch.append(tokens)
 
-# Decode tokens individually for display
-tokens = tokenizer.convert_ids_to_tokens(input_ids[0])
+        if len(batch) == batch_size:
+            yield pt.stack(batch)
+            batch = []
 
-# Print full message with improbable tokens highlighted
-from IPython.display import HTML, display
-from html import escape
 
-# Create HTML visualization with intensity based on improbability
-html_result = ""
-for token, prob in zip(tokens, probs):
-    # Convert token ID back to text
-    token_text = tokenizer.convert_tokens_to_string([token])
-    
-    # Calculate opacity based on improbability
-    opacity = max(0, 0.1 - prob) * 7
-    
-    # Use a single highlight color (yellow) with varying opacity
-    html_result += f"<span style='background-color: rgba(255, 255, 0, {opacity})'>{escape(token_text)}</span>"
+# %%
 
-# Display result with highlight intensity based on improbability
-display(HTML(html_result))
+# # topics = ["Virology"]
+# topics = "all"
+# batches = yield_batches(
+#     dataset=_load_camel_bio_topics(topics),
+#     format_fn=lambda ex: ex["message_1"] + "\n\n" + ex["message_2"],
+# )
+# exp_name = f"camel-bio-{topics}"
 
-# ... existing code ...
+batches = yield_batches(
+    dataset=load_dataset("lapisrocks/pile-bio", split="train"),
+    format_fn=lambda ex: ex["txt_chunk"],
+)
+exp_name = "pile-bio"
+
+
+lr = 1e-4
+optimizer = pt.optim.SGD(model.parameters(), lr=lr)
+steps_done = 0
+
+wandb.init(
+    project="mudman-dataset-test",
+    # group=variant_name,
+    name=f"{lr}:{exp_name}",
+)
+# without training:
+# wmdp_acc=0.615082482325216, mmlu_acc=0.5276497695852534
+wandb.log({"wmdp_accuracy": 0.61508, "mmlu_accuracy": 0.52764}, step=steps_done)
+
+# %%
+for _ in range(10):
+
+    for i in range(100):
+        batch = next(batches)
+
+        model.train()
+        model.zero_grad(set_to_none=True)
+        pt.cuda.empty_cache()
+
+        out = model(batch)
+        loss = cross_entropy_loss(out, batch)
+        loss.backward()
+        optimizer.step()
+    steps_done += 100
+
+    wmdp_acc = eval_on_wmdp(model, temperature=0)
+    mmlu_acc = eval_on_mmlu(model, temperature=0)
+    print(f"wmdp_acc={wmdp_acc}, mmlu_acc={mmlu_acc}")
+    wandb.log({"wmdp_accuracy": wmdp_acc, "mmlu_accuracy": mmlu_acc}, step=steps_done)
+
+# %%
+
+wandb.finish()
