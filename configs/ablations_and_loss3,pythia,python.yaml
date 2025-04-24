@@ -1,13 +1,18 @@
 general_config:
   method_name: surgical_irreversible_unlearning
+  # target_modules:
+  #   - dense_h_to_4h  # equivalent of gate_proj
   target_modules:
-    - dense_h_to_4h  # equivalent of gate_proj
+    - dense_h_to_4h
+    - dense_4h_to_h
+    - query_key_value
+    - dense
   model_id: EleutherAI/pythia-14m
   retain_set_name: wikitext
   forget_set_name: python
   unlearn_steps: 300
   batch_size: 16
-  n_trials: 800
+  n_trials: 100
   normalize_grads: true
   retain_loss_budget: 0.05
   # method specific
@@ -22,9 +27,9 @@ relearn_config:
 
 hyperparams:
   additional_param: None  # on default don't use this
-  adv_decay: [0.3, 1, false]
+  adv_decay: 1  # [0.3, 1, false]
   adv_lr: [0.0003, 0.1, true]
-  fork_every_n_loops: [6, 42, false]
+  fork_every_n_loops: 30  # [6, 42, false]
   retain_momentum: [0, 0.99, false]
   retaining_rate: [1.e-4, 1.e-2, true]
   unlearning_rate: [1.e-7, 3.e-2, true]
@@ -46,7 +51,7 @@ variants:
   #   retain_momentum: [0, 0, false]
   no_adversary:
     train_adversary: false
-    adv_decay: [1, 1, false]  # it has no effect anyway
+    # adv_decay: [1, 1, false]  # it has no effect anyway
   # no_adv_decay:
   #   adv_decay: [1, 1, false]
   no_normalization:
@@ -72,5 +77,5 @@ variants:
     additional_param_name: rep_eng_retain_lr
     square_norm: true
     additional_param: [1, 1, false]
-    adv_decay: [1, 1, false]
+    # adv_decay: [1, 1, false]
     normalize_grads: false

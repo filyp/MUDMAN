@@ -48,23 +48,23 @@ def yield_batches(dataset, format_fn):
 # %%
 model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=pt.bfloat16)
 
-topics = ["Virology", "Microbiology", "Biotechnology", "Genetics", "Biochemistry"]
-# topics = "all"
-batches = yield_batches(
-    dataset=_load_camel_bio_topics(topics),
-    format_fn=lambda ex: ex["message_1"] + "\n\n" + ex["message_2"],
-)
-# exp_name = f"camel-bio-{topics}"
-
+# topics = ["Virology", "Microbiology", "Biotechnology", "Genetics", "Biochemistry"]
+# # topics = "all"
 # batches = yield_batches(
-#     dataset=load_dataset("lapisrocks/pile-bio", split="train"),
-#     format_fn=lambda ex: ex["txt_chunk"],
+#     dataset=_load_camel_bio_topics(topics),
+#     format_fn=lambda ex: ex["message_1"] + "\n\n" + ex["message_2"],
 # )
-# exp_name = "pile-bio"
+# # exp_name = f"camel-bio-{topics}"
+
+batches = yield_batches(
+    dataset=load_dataset("lapisrocks/pile-bio", split="train"),
+    format_fn=lambda ex: ex["txt_chunk"],
+)
+exp_name = "pile-bio"
 
 
-lr = 0.1e-4
-retain_lr = 1e-4
+lr = 0.3e-4
+retain_lr = 3e-4
 optimizer = pt.optim.SGD(model.parameters(), lr=lr)
 steps_done = 0
 
@@ -85,7 +85,7 @@ loss_fn_name = "neg_entropy"
 wandb.init(
     project="mudman-dataset-test-3b",
     # group=variant_name,
-    name=f"{lr}:{retain_lr}:{loss_fn_name}"
+    name=f"{lr}:{retain_lr}:{loss_fn_name}:{exp_name}"
 )
 
 
