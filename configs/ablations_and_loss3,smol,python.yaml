@@ -1,13 +1,21 @@
 general_config:
   method_name: surgical_irreversible_unlearning
+  # target_modules:
+  #   - gate_proj
   target_modules:
+    - up_proj
+    - down_proj
     - gate_proj
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
   model_id: HuggingFaceTB/SmolLM-135M
   retain_set_name: wikitext
   forget_set_name: python
   unlearn_steps: 300
   batch_size: 16
-  n_trials: 500
+  n_trials: 100
   normalize_grads: true
   retain_loss_budget: 0.05
   # method specific
@@ -22,9 +30,9 @@ relearn_config:
 
 hyperparams:
   additional_param: None  # on default don't use this
-  adv_decay: [0.3, 1, false]
+  adv_decay: 1  # [0.3, 1, false]
   adv_lr: [0.0003, 0.1, true]
-  fork_every_n_loops: [6, 42, false]
+  fork_every_n_loops: 30  # [6, 42, false]
   retain_momentum: [0, 0.99, false]
   retaining_rate: [1.e-4, 1.e-2, true]
   unlearning_rate: [1.e-7, 3.e-1, true]
@@ -46,7 +54,7 @@ variants:
   #   retain_momentum: [0, 0, false]
   no_adversary:
     train_adversary: false
-    adv_decay: [1, 1, false]  # it has no effect anyway
+    # adv_decay: [1, 1, false]  # it has no effect anyway
   # no_adv_decay:
   #   adv_decay: [1, 1, false]
   no_normalization:
@@ -74,5 +82,5 @@ variants:
     square_norm: true
     # needs to be small and tuned, because on Smol it explodes
     additional_param: [1.e-12, 1, true]
-    adv_decay: [1, 1, false]
+    # adv_decay: [1, 1, false]
     normalize_grads: false

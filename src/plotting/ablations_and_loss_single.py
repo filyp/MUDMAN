@@ -87,7 +87,7 @@ positions_dict = {
 fig, ax = plt.subplots(figsize=(4, 3))
 
 # Set title and labels
-ax.set_title("Llama-3.2-1B on Pile-Bio", fontsize=12)
+ax.set_title("Pythia-70M on Python", fontsize=12)
 ax.set_xlabel("Forget loss after relearning↑")
 
 # Create a color mapping for methods
