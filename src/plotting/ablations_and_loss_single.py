@@ -29,7 +29,7 @@ storage = get_storage()
 # %% get the studies
 multistudy_to_method_stats = dict()
 # Just pick one multistudy
-multistudy_name = "pythia,python"
+multistudy_name = "smol,python"
 multistudy_to_method_stats[multistudy_name] = dict()
 
 # load YAML configuration
@@ -87,7 +87,7 @@ positions_dict = {
 fig, ax = plt.subplots(figsize=(4, 3))
 
 # Set title and labels
-ax.set_title("Pythia-70M on Python", fontsize=12)
+# ax.set_title("Pythia-70M on Python", fontsize=12)
 ax.set_xlabel("Forget loss after relearning↑")
 
 # Create a color mapping for methods
@@ -125,14 +125,14 @@ if baseline_path.exists():
     # Add baseline
     ax.axvline(x=baseline, color="black", linestyle="--", alpha=0.3)
 
-# Calculate the minimum and maximum mean values for the xlim
-max_bar = max(mean for mean, sem in method_stats.values())
-min_bar = min(mean for mean, sem in method_stats.values())
-if baseline_path.exists():
-    min_bar = min(min_bar, baseline)
-center = (max_bar + min_bar) / 2
-scale = 0.5  # Using the first scale from the original scales list
-ax.set_xlim(center - scale / 2, center + scale / 2)
+# # Calculate the minimum and maximum mean values for the xlim
+# max_bar = max(mean for mean, sem in method_stats.values())
+# min_bar = min(mean for mean, sem in method_stats.values())
+# if baseline_path.exists():
+#     min_bar = min(min_bar, baseline)
+# center = (max_bar + min_bar) / 2
+# scale = 0.5  # Using the first scale from the original scales list
+# ax.set_xlim(center - scale / 2, center + scale / 2)
 
 plt.tight_layout()
 
