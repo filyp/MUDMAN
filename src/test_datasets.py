@@ -5,6 +5,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 import wandb
 from datasets import IterableDataset, IterableDatasetDict, load_dataset
+from utils.loss_fns import loss_fns
 from utils.data_loading import _load_camel_bio_topics
 from utils.loss_fns import correct_logit_minus_avg_loss, cross_entropy_loss, neg_entropy_loss
 from utils.mmlu_eval import eval_on_mmlu
@@ -14,8 +15,8 @@ pt.set_default_device("cuda")
 
 # %%
 
-# model_id = "meta-llama/Llama-3.2-3B"
-model_id = "meta-llama/Llama-3.2-1B"
+model_id = "meta-llama/Llama-3.2-3B"
+# model_id = "meta-llama/Llama-3.2-1B"
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 context_len = 200
 batch_size = 4
@@ -47,23 +48,23 @@ def yield_batches(dataset, format_fn):
 # %%
 model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=pt.bfloat16)
 
-# # topics = ["Virology", "Microbiology", "Biotechnology", "Genetics", "Biochemistry"]
+topics = ["Virology", "Microbiology", "Biotechnology", "Genetics", "Biochemistry"]
 # topics = "all"
-# batches = yield_batches(
-#     dataset=_load_camel_bio_topics(topics),
-#     format_fn=lambda ex: ex["message_1"] + "\n\n" + ex["message_2"],
-# )
+batches = yield_batches(
+    dataset=_load_camel_bio_topics(topics),
+    format_fn=lambda ex: ex["message_1"] + "\n\n" + ex["message_2"],
+)
 # exp_name = f"camel-bio-{topics}"
 
-batches = yield_batches(
-    dataset=load_dataset("lapisrocks/pile-bio", split="train"),
-    format_fn=lambda ex: ex["txt_chunk"],
-)
-exp_name = "pile-bio"
+# batches = yield_batches(
+#     dataset=load_dataset("lapisrocks/pile-bio", split="train"),
+#     format_fn=lambda ex: ex["txt_chunk"],
+# )
+# exp_name = "pile-bio"
 
 
-lr = 0.02e-4
-# retain_lr = 1e-4
+lr = 0.1e-4
+retain_lr = 1e-4
 optimizer = pt.optim.SGD(model.parameters(), lr=lr)
 steps_done = 0
 
@@ -71,48 +72,56 @@ steps_done = 0
 #     dataset=load_dataset("Salesforce/wikitext", "wikitext-103-raw-v1", split="train"),
 #     format_fn=lambda ex: ex["text"],
 # )
+topics = ["Paleontology", "Biogeography", "Botany", "Marine biology", "Biomechanics"]
+retain_batches = yield_batches(
+    dataset=_load_camel_bio_topics(topics),
+    format_fn=lambda ex: ex["message_1"] + "\n\n" + ex["message_2"],
+)
+
+# loss_fn_name = "correct_logit_minus_avg"
+# loss_fn_name = "neg_cross_entropy"
+loss_fn_name = "neg_entropy"
 
 wandb.init(
-    project="mudman-dataset-test2",
+    project="mudman-dataset-test-3b",
     # group=variant_name,
-    name=f"{lr}:{exp_name}",
+    name=f"{lr}:{retain_lr}:{loss_fn_name}"
 )
-# without training, with temperature=0:
-# wmdp_acc=0.615082482325216, mmlu_acc=0.5276497695852534
-# without training, with temperature=1:
-# wmdp_acc=0.5258370974076984, mmlu_acc=0.4386400729646697
-# wandb.log({"wmdp_accuracy": 0.525837, "mmlu_accuracy": 0.438640}, step=steps_done)
 
 
 # %%
 steps_per_loop = 10
 start_time = time.time()
 model.train()
-for _ in range(10):
+loss_fn = loss_fns[loss_fn_name]
+for _ in range(100):
 
     for i in range(steps_per_loop):
         batch = next(batches)
         model.zero_grad(set_to_none=True)
         pt.cuda.empty_cache()
         out = model(batch)
-        # loss = neg_entropy_loss(out, batch)
-        loss = correct_logit_minus_avg_loss(out, batch)
+        loss = loss_fn(out, batch)
         loss.backward()
-        # optimizer.param_groups[0]["lr"] = lr
+        grad_norm = sum(p.grad.norm() ** 2 for p in model.parameters()) ** 0.5
+        print(f"grad_norm={grad_norm}\tloss={loss}", end="\t")
+        # optimizer.param_groups[0]["lr"] = lr * grad_norm
+        optimizer.param_groups[0]["lr"] = lr
         optimizer.step()
 
-        # # I thought maybe retaining helps, but looks like it doesn't
-        # retain_batch = next(retain_batches)
-        # model.zero_grad(set_to_none=True)
-        # pt.cuda.empty_cache()
-        # out = model(retain_batch)
-        # retain_loss = cross_entropy_loss(out, retain_batch)
-        # retain_loss.backward()
-        # optimizer.param_groups[0]["lr"] = retain_lr
-        # optimizer.step()
+        # I thought maybe retaining helps, but looks like it doesn't
+        retain_batch = next(retain_batches)
+        model.zero_grad(set_to_none=True)
+        pt.cuda.empty_cache()
+        out = model(retain_batch)
+        retain_loss = cross_entropy_loss(out, retain_batch)
+        retain_loss.backward()
+        grad_norm = sum(p.grad.norm() ** 2 for p in model.parameters()) ** 0.5
+        print(f"grad_norm={grad_norm}\tretain_loss={retain_loss}")
+        optimizer.param_groups[0]["lr"] = retain_lr
+        optimizer.step()
 
         # print(f"loss={loss}, retain_loss={retain_loss}")
-        print(f"loss={loss}")
 
         
 
@@ -131,3 +140,5 @@ for _ in range(10):
 
 # %%
 wandb.finish()
+
+# %%

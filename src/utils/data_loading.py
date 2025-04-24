@@ -170,6 +170,8 @@ camel_topic_risk_ratings = {
     "Endocrinology": 1,
     "Biogeography": 1,
 }
+
+
 def _load_camel_bio_topics(topics="all"):
     if topics != "all":
         for topic in topics:
@@ -204,6 +206,44 @@ def _load_camel_bio_topics(topics="all"):
         return dataset
     else:
         return dataset.filter(lambda x: x["topic;"] in topics)
+
+
+# # note that it has Biochemistry too
+# def _load_camel_chemistry():
+#     # if topics != "all":
+#     #     for topic in topics:
+#     #         assert topic in camel_topic_risk_ratings
+#     # dataset = load_dataset("camel-ai/biology", split="train")  # this is really slow
+#     path = hf_hub_download(
+#         repo_id="camel-ai/chemistry",
+#         repo_type="dataset",
+#         filename="chemistry.zip",
+#         # local_dir="datasets/",
+#         # local_dir_use_symlinks=False,
+#     )
+
+#     # Get the path to the downloaded file
+#     zip_path = Path(path)
+#     # Create an extraction directory in the same parent folder
+#     extract_dir = zip_path.parent / "extracted"
+#     # Delete if exists
+#     if extract_dir.exists():
+#         shutil.rmtree(extract_dir)
+#     extract_dir.mkdir(exist_ok=True)
+#     # Extract the zip file
+#     with zipfile.ZipFile(zip_path, "r") as zip_ref:
+#         zip_ref.extractall(extract_dir)
+
+#     # Find the extracted data file(s)
+#     # Assuming there's a JSON file with the data
+#     l_str = [str(path) for path in extract_dir.glob("**/*.json")]
+#     # Create a dataset from the extracted data
+#     dataset = load_dataset("json", data_files=l_str, split="train")
+#     # if topics == "all":
+#     #     return dataset
+#     # else:
+#     #     return dataset.filter(lambda x: x["topic;"] in topics)
+#     return dataset
 
 
 dataset_loaders = dict(
