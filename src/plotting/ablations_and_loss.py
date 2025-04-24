@@ -47,7 +47,7 @@ for multistudy_name in multistudy_names:
 
     # load YAML configuration
     config_path = (
-        repo_root() / "configs" / f"ablations_and_loss3,{multistudy_name}.yaml"
+        repo_root() / "configs" / f"ablations_and_loss2,{multistudy_name}.yaml"
     )
     with open(config_path, "r") as f:
         full_config = yaml.safe_load(f)
