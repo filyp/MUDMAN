@@ -31,25 +31,6 @@ def add_tag_to_current_commit(tag: str) -> None:
     subprocess.run(["git", "tag", tag], check=True)
 
 
-def save_file_and_attach_logger(file_name, study_name):
-    # for reproducibility save the file state and append output into it
-    # save script
-    # folder = repo_root() / "results" / datetime.now().strftime("%Y-%m-%d")
-    folder = repo_root() / "results" / "logs"
-    folder.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    path = folder / f"{timestamp} {study_name}.log"
-    shutil.copy(file_name, path)
-    # attach logger
-    for h in logging.getLogger().handlers[1:]:
-        logging.root.removeHandler(h)
-    file_handler = logging.FileHandler(path)
-    formatter = logging.Formatter("# %(asctime)s %(levelname)s  %(message)s")
-    file_handler.setFormatter(formatter)
-    logging.root.addHandler(file_handler)
-    logging.info(f"commit hash: {commit_hash()}")
-
-
 def _remote_storage(db_url):
     return optuna.storages.RDBStorage(
         url=db_url,

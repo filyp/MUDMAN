@@ -5,7 +5,7 @@ import torch as pt
 from transformers import AutoTokenizer
 
 from datasets import load_dataset
-from utils.data_loading_lowMI import load_low_mi_set, data_paths
+from utils.data_loading import load_low_mi_set, data_paths
 
 pt.set_default_device("cuda")
 answer_tokens = [" A", " B", " C", " D"]
