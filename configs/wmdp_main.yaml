@@ -8,9 +8,9 @@ study_config:
     - v_proj
     - o_proj
   model_id: meta-llama/Llama-3.2-1B
-  retain_set_name: pile_bio_retain
-  forget_set_name: pile_bio_forget
-  unlearning_epochs: 0.1
+  # retain_set_name: pile_bio_retain
+  # forget_set_name: pile_bio_forget
+  unlearning_epochs: 1
   n_trials: 100
 
 relearn_config:
@@ -24,11 +24,11 @@ hyperparams:
   train_adversary: true
   ###
   adv_decay: 1
-  adv_lr: 0.001
+  adv_lr: 0.0003
   fork_every_n_loops: 48
   retain_momentum: 0.95
-  retaining_rate: [1.e-5, 1.e-3, true]
-  unlearning_rate: [1.e-7, 1.e-4, true]
+  retaining_rate: [1.e-6, 1.e-3, true]
+  unlearning_rate: [1.e-10, 1.e-7, true]
 
 variants:
   # ! loss functions
@@ -41,7 +41,7 @@ variants:
     train_adversary: false
   no_normalization_ent:
     normalize_grads: false
-    unlearning_rate: [1.e-4, 1.e-1, true]
+    unlearning_rate: [1.e-5, 1.e-4, true]  # about 3ooms lower than default
 
   TAR2:
     # it also has and target modules
@@ -52,7 +52,7 @@ variants:
     square_norm: true
     normalize_grads: false
     # because it uses no normalization
-    unlearning_rate: [1.e-4, 1.e-1, true]
+    unlearning_rate: [1.e-5, 1.e-4, true]  # about 3ooms lower than default
 
 
 variant_num: 0
