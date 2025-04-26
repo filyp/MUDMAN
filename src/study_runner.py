@@ -5,18 +5,17 @@ import os
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # necessary for determinism:
 
 from copy import deepcopy
+import logging
 
 import hydra
 import torch as pt
 from omegaconf import ListConfig, OmegaConf
 
-from unlearning_methods.surgical_irreversible_unlearning import (
-    surgical_irreversible_unlearning,
-)
+from unlearning_methods.general import unlearn
 from utils.data_loading_lowMI import load_batches
 from utils.evals import eval_on
 from utils.git_and_reproducibility import *
-from utils.model_operations import relearn, relearn_with_retain
+# from utils.model_operations import relearn, relearn_with_retain
 from utils.training import set_seeds
 
 
@@ -51,7 +50,7 @@ def run_study(cfg):
         logging.info(f"trial {trial.number} - {trial.params}")
 
         set_seeds(42)
-        model = surgical_irreversible_unlearning(
+        model = unlearn(
             hyperparams,
             study_config,
             retain_batches,

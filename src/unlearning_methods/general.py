@@ -5,10 +5,9 @@ import torch as pt
 from transformers import AutoModelForCausalLM
 
 from utils.loss_fns import *
-from utils.training import *
 
 
-def surgical_irreversible_unlearning(
+def unlearn(
     h,
     config,
     retain_batches,

@@ -25,31 +25,30 @@ Answer:"""
     # Answer (just A, B, C or D):"""
 
 
-# %% prepare filtered mmlu dataset
-mmlu_dataset = load_dataset("cais/mmlu", "all", split="validation")
+def load_filtered_mmlu_dataset():
+    # %% prepare filtered mmlu dataset
+    mmlu_dataset = load_dataset("cais/mmlu", "all", split="validation")
 
-# filter out all the subcategories of biology and health
-# keep even the ones like anatomy, clinical_knowledge and professional_medicine,
-# because they contain some questions about molecular biology
-categories_to_reject = {
-    "college_biology",
-    "college_medicine",
-    "high_school_biology",
-    "human_aging",
-    "medical_genetics",
-    "nutrition",
-    "professional_medicine",
-    "virology",
-    "anatomy",
-    "clinical_knowledge",
-}
-# filter out the ones in the categories_to_reject
-filtered_mmlu = [ex for ex in mmlu_dataset if ex["subject"] not in categories_to_reject]
+    # filter out all the subcategories of biology and health
+    # keep even the ones like anatomy, clinical_knowledge and professional_medicine,
+    # because they contain some questions about molecular biology
+    categories_to_reject = {
+        "college_biology",
+        "college_medicine",
+        "high_school_biology",
+        "human_aging",
+        "medical_genetics",
+        "nutrition",
+        "professional_medicine",
+        "virology",
+        "anatomy",
+        "clinical_knowledge",
+    }
+    # filter out the ones in the categories_to_reject
+    return [ex for ex in mmlu_dataset if ex["subject"] not in categories_to_reject]
 
 
 # %%
-
-
 def eval_on(dataset_name, model, batch_size=16, subset=None, temperature=0):
     assert model.config.name_or_path in [
         "meta-llama/Llama-3.2-1B",
@@ -61,7 +60,7 @@ def eval_on(dataset_name, model, batch_size=16, subset=None, temperature=0):
         case "wmdp_bio":
             dataset = load_dataset("cais/wmdp", "wmdp-bio")["test"]
         case "filtered_mmlu":
-            dataset = filtered_mmlu
+            dataset = load_filtered_mmlu_dataset()
         case _:
             assert dataset_name in ["wmdp_deduped_mcq_eval", "years_mcq_eval"]
             dataset = load_low_mi_set(data_paths[dataset_name])
