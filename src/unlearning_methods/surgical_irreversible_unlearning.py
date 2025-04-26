@@ -25,8 +25,7 @@ def surgical_irreversible_unlearning(
     h.fork_every_n_loops = int(h.fork_every_n_loops)
     # unlearn = True
     if eval_wmdp_every is not None:
-        from utils.wmdp_eval import eval_on_wmdp
-        from utils.mmlu_eval import eval_on_mmlu
+        from utils.evals import eval_on
 
     if model is None:
         model = AutoModelForCausalLM.from_pretrained(
@@ -189,8 +188,8 @@ def surgical_irreversible_unlearning(
             #     unlearn = True
 
         if eval_wmdp_every is not None and _passes_done % eval_wmdp_every == 0:
-            wmdp_acc = eval_on_wmdp(model)
-            mmlu_acc = eval_on_mmlu(model)
+            wmdp_acc = eval_on("wmdp_bio", model)
+            mmlu_acc = eval_on("filtered_mmlu", model)
             wandb.log(
                 res | {"wmdp_accuracy": wmdp_acc, "mmlu_accuracy": mmlu_acc},
                 step=_passes_done,

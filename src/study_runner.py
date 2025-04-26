@@ -6,7 +6,7 @@ import os
 
 import wandb
 
-from utils.wmdp_eval import eval_on_wmdp
+from utils.evals import eval_on
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 # os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":16:8"  # less mem but slower
@@ -20,13 +20,8 @@ import torch as pt
 import yaml
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from unlearning_methods.circuit_breakers import circuit_breakers
-from unlearning_methods.circuit_breakers_no_lora import circuit_breakers_no_lora
 from unlearning_methods.surgical_irreversible_unlearning import (
     surgical_irreversible_unlearning,
-)
-from unlearning_methods.surgical_irreversible_unlearning_lora import (
-    surgical_irreversible_unlearning_lora,
 )
 from utils.data_loading import CachedBatches, dataset_loaders
 from utils.git_and_reproducibility import *
@@ -90,13 +85,6 @@ def run_study(storage, config_path, variant_num, if_study_exists="fail", n_trial
     allowed_r_loss = _init_res["retain_loss"]
     allowed_r_loss += getattr(config, "retain_loss_budget", 0)
 
-    unlearning_func = dict(
-        circuit_breakers=circuit_breakers,
-        circuit_breakers_no_lora=circuit_breakers_no_lora,
-        surgical_irreversible_unlearning_lora=surgical_irreversible_unlearning_lora,
-        surgical_irreversible_unlearning=surgical_irreversible_unlearning,
-    )[config.method_name]
-
     def objective(trial):
         # construct hyperparams
         hyperparams = dict()
@@ -112,7 +100,7 @@ def run_study(storage, config_path, variant_num, if_study_exists="fail", n_trial
         logging.info(f"trial {trial.number} - {trial.params}")
 
         set_seeds(42)
-        model = unlearning_func(
+        model = surgical_irreversible_unlearning(
             hyperparams,
             config,
             retain_batches,
@@ -154,7 +142,7 @@ def run_study(storage, config_path, variant_num, if_study_exists="fail", n_trial
             group=variant_name,
             name=f"{variant_name}-{trial.number}",
         )
-        accuracy = eval_on_wmdp(model)
+        accuracy = eval_on("wmdp_bio", model)
         wandb.log(_init_res | {"wmdp_accuracy": accuracy}, step=0)
 
         set_seeds(42)
@@ -191,7 +179,7 @@ def run_study(storage, config_path, variant_num, if_study_exists="fail", n_trial
         )
         wandb.finish()
 
-        return eval_on_wmdp(model)
+        return eval_on("wmdp_bio", model)
 
     if if_study_exists == "delete":
         delete_study_if_exists(study_name, storage)

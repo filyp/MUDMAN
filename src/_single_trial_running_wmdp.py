@@ -32,8 +32,6 @@ from utils.git_and_reproducibility import *
 from utils.loss_fns import loss_fns
 from utils.model_operations import relearn, relearn_with_retain
 from utils.training import *
-from utils.wmdp_eval import eval_on_wmdp
-from utils.mmlu_eval import eval_on_mmlu
 
 logging.basicConfig(
     level=logging.INFO,
@@ -100,14 +98,6 @@ model = AutoModelForCausalLM.from_pretrained(
     config.model_id, torch_dtype=pt.bfloat16
 )
 
-# wandb.init(
-#     project="wmdp7-manual-run",
-#     group="manual-run",
-#     name="manual-run",
-# )
-# accuracy = eval_on_wmdp(model)
-# wandb.log(_init_res | {"wmdp_accuracy": accuracy}, step=0)
-
 set_seeds(42)
 model, _results = surgical_irreversible_unlearning(
     hyperparams,
@@ -125,25 +115,6 @@ model, _results = surgical_irreversible_unlearning(
     eval_wmdp_every=9999999,
     allowed_mmlu_acc=config.allowed_mmlu_acc,
 )
-
-# set_seeds(42)
-# _ = relearn_with_retain(
-#     model,
-#     relearn_config,
-#     retain_val_batches,
-#     forget_val_batches,
-#     eval_wmdp_every=config.eval_wmdp_every,
-#     step_offset=config.unlearn_steps,
-#     # this is very rarely needed, but when it happens, it means
-#     # relearning was broken, so reject
-#     # (alternative would be to relearn slower, but that's inefficient)
-#     # allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
-#     # allowed_r_loss=float("inf"),
-#     # allowed_mmlu_acc=config.allowed_mmlu_acc,
-# )
-# wandb.finish()
-# eval_on_wmdp(model)
-
 
 # %%
 # plot results

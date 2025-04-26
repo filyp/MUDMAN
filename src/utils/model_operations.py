@@ -7,9 +7,8 @@ from peft import LoraConfig, get_peft_model
 
 import wandb
 from utils.loss_fns import *
-from utils.mmlu_eval import eval_on_mmlu
 from utils.training import eval_
-from utils.wmdp_eval import eval_on_wmdp
+from utils.evals import eval_on
 
 
 def only_grad_on(model, params_to_grad):
@@ -136,8 +135,8 @@ def relearn_with_retain(
             #     raise optuna.TrialPruned("Relearning failed, retain loss too high")
 
         if eval_wmdp_every is not None and _passes_done % eval_wmdp_every == 0:
-            wmdp_acc = eval_on_wmdp(model)
-            mmlu_acc = eval_on_mmlu(model)
+            wmdp_acc = eval_on("wmdp_bio", model)
+            mmlu_acc = eval_on("filtered_mmlu", model)
             print(f"wmdp_acc={wmdp_acc}, mmlu_acc={mmlu_acc}")
 
             # if mmlu_acc < allowed_mmlu_acc:

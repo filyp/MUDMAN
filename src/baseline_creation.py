@@ -10,8 +10,6 @@ methods and their configurations.
 # # necessary for determinism:
 import os
 
-from utils.mmlu_eval import eval_on_mmlu
-
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 # os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":16:8"  # less mem but slower
 
@@ -28,7 +26,7 @@ from utils.data_loading import CachedBatches, dataset_loaders
 from utils.git_and_reproducibility import *
 from utils.model_operations import relearn, relearn_with_retain
 from utils.training import *
-from utils.wmdp_eval import eval_on_wmdp
+from utils.evals import eval_on
 
 logging.basicConfig(
     level=logging.INFO,
@@ -126,8 +124,7 @@ else:
 model.config.use_cache = False
 
 
-# wmdp_accuracy = eval_on_wmdp(model)
-mmlu_accuracy = eval_on_mmlu(model)
+mmlu_accuracy = eval_on("filtered_mmlu", model)
 print(f"mmlu_accuracy={mmlu_accuracy}")
 
 # _init_res = eval_(AutoModelForCausalLM.from_pretrained(config.model_id), f_eval, r_eval)
@@ -147,7 +144,7 @@ _ = relearn_with_retain(
     # allowed_r_loss=_init_res["retain_loss"] + config.hard_loss_budget,
     # allowed_mmlu_acc=config.allowed_mmlu_acc,
 )
-accuracy = eval_on_wmdp(model)
+accuracy = eval_on("wmdp_bio", model)
 print(f"wmdp_accuracy={accuracy}")
 
 out_path = repo_root() / "results" / "baselines" / f"{config_path.stem}.txt"

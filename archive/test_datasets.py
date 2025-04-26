@@ -9,7 +9,7 @@ from utils.loss_fns import loss_fns
 from utils.data_loading import _load_camel_bio_topics
 from utils.loss_fns import correct_logit_minus_avg_loss, cross_entropy_loss, neg_entropy_loss
 from utils.mmlu_eval import eval_on_mmlu
-from utils.wmdp_eval import eval_on_wmdp
+from utils.evals import eval_on_wmdp
 
 pt.set_default_device("cuda")
 

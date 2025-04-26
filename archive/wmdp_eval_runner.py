@@ -37,7 +37,7 @@ from utils.data_loading import CachedBatches, dataset_loaders
 from utils.git_and_reproducibility import get_storage, repo_root
 from utils.model_operations import relearn_with_retain
 from utils.training import eval_, set_seeds
-from utils.wmdp_eval import eval_on_wmdp
+from utils.evals import eval_on_wmdp
 
 logging.basicConfig(
     level=logging.INFO,
