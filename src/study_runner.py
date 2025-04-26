@@ -15,13 +15,14 @@ from unlearning_methods.general import unlearn
 from utils.data_loading import load_batches
 from utils.evals import eval_on
 from utils.git_and_reproducibility import *
+
 # from utils.model_operations import relearn, relearn_with_retain
 from utils.training import set_seeds
 
 
 @hydra.main(version_base="1.2", config_path="../configs", config_name="wmdp_main")
 def run_study(cfg):
-    study_config = cfg.study_config
+    s_cfg = cfg.study_config
 
     storage = get_storage()
     pt.set_default_device("cuda")
@@ -36,9 +37,16 @@ def run_study(cfg):
 
     # load datasets
     set_seeds(42)
-    # todo configure
-    forget_batches = load_batches(study_config.model_id, "wmdp_deduped_unlearning")
-    retain_batches = load_batches(study_config.model_id, "mmlu_retain")
+    forget_batches = load_batches(
+        s_cfg.model_id,
+        s_cfg.forget_set_name,
+        s_cfg.batch_size,
+    )
+    retain_batches = load_batches(
+        s_cfg.model_id,
+        s_cfg.retain_set_name,
+        s_cfg.batch_size,
+    )
 
     def objective(trial):
         # construct hyperparams
@@ -52,7 +60,7 @@ def run_study(cfg):
         set_seeds(42)
         model = unlearn(
             hyperparams,
-            study_config,
+            s_cfg,
             retain_batches,
             forget_batches,
         )
@@ -68,7 +76,7 @@ def run_study(cfg):
         print(f"{wmdp_accuracy=} {mmlu_accuracy=}")
         # use min rather than last, in case it anomalously increases
         return wmdp_accuracy, mmlu_accuracy
-    
+
     if cfg.extend_existing_study:
         study = optuna.load_study(study_name=study_name, storage=storage)
     else:
@@ -82,7 +90,7 @@ def run_study(cfg):
     study.set_user_attr("is_repo_clean", is_repo_clean())
 
     # run remaining trials
-    n_trials = study_config.n_trials - len(study.trials)
+    n_trials = s_cfg.n_trials - len(study.trials)
     logging.info(f"Trials existing: {len(study.trials)}, remaining: {n_trials}")
     study.optimize(objective, n_trials=n_trials)
 
