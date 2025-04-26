@@ -74,10 +74,11 @@ def load_low_mi_set(paths):
     )
 
 
-def load_batches(model_id, paths, batch_size=4, max_length=512):
+def load_batches(model_id, dataset_name, batch_size=4, max_length=512):
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.pad_token = tokenizer.eos_token
 
+    paths = data_paths[dataset_name]
     corpus = load_low_mi_set(paths)
     corpus = corpus.shuffle(seed=42)
     corpus = corpus.batch(batch_size)
@@ -96,8 +97,6 @@ def load_batches(model_id, paths, batch_size=4, max_length=512):
 # # %%
 # pt.set_default_device("cuda")
 # model_id = "meta-llama/Llama-3.2-1B"
-# forget_batches = load_batches(model_id, data_paths["wmdp_deduped_unlearning"])
-# retain_batches = load_batches(model_id, data_paths["mmlu_retain"])
 
 
 # %%

@@ -50,7 +50,7 @@ def surgical_irreversible_unlearning(
         frozen_model.eval()
 
     # ! unlearning loop
-    num_of_loops = int(len(forget_batches) * config.epochs)
+    num_of_loops = int(len(forget_batches) * config.unlearning_epochs)
     for loop_num in range(num_of_loops):
         batch_index = loop_num % len(forget_batches)
         f_batch = forget_batches[batch_index]
