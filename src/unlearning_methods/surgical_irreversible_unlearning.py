@@ -4,7 +4,6 @@ from copy import deepcopy
 import torch as pt
 from transformers import AutoModelForCausalLM
 
-import wandb
 from utils.loss_fns import *
 from utils.training import *
 
@@ -14,26 +13,15 @@ def surgical_irreversible_unlearning(
     config,
     retain_batches,
     forget_batches,
-    f_eval,
-    r_eval,
-    allowed_r_loss,
-    model=None,
-    # soft_threshold=None,
-    eval_wmdp_every=None,
-    allowed_mmlu_acc=None,
 ):
     h.fork_every_n_loops = int(h.fork_every_n_loops)
-    # unlearn = True
-    if eval_wmdp_every is not None:
-        from utils.evals import eval_on
 
-    if model is None:
-        model = AutoModelForCausalLM.from_pretrained(
-            config.model_id, torch_dtype=pt.bfloat16
-        )
+    model = AutoModelForCausalLM.from_pretrained(
+        config.model_id, torch_dtype=pt.bfloat16
+    )
     model.config.use_cache = False
 
-    clip_at = h.additional_param if config.additional_param_name == "clip_at" else 0
+    clip_at = h.clip_at if "clip_at" in h else 0
 
     # get params to intervene on
     interven_params = [
@@ -51,35 +39,23 @@ def surgical_irreversible_unlearning(
 
     for p in interven_params:
         p.retain_acc = pt.zeros_like(p.data)
-        if config.additional_param_name == "forget_momentum":
+        if "forget_momentum" in h:
             p.forget_acc = pt.zeros_like(p.data)
         p.base_data = p.data.clone().detach()
 
     # ! unlearning loop
     logging.info("step      base_f      base_r")
-    retain_iter = iter(retain_batches)
-    forget_iter = iter(forget_batches)
-
-    if config.additional_param_name == "rep_eng_retain_lr":
+    if "rep_eng_retain_lr" in h:
         frozen_model = deepcopy(model)
         frozen_model.eval()
 
     # ! unlearning loop
-    passes_per_loop = (
-        4
-        + int(config.train_adversary)
-        # note that now it's inefficient and uses two additional passes
-        # but in principle could be optimized to reuse outputs and only need
-        # additional forward pass on the frozen model
-        + int(config.additional_param_name == "rep_eng_retain_lr")
-    )
-    _eval_counter = 0
-    assert config.unlearn_steps % passes_per_loop == 0
-    # _results = []
-    for loop_num in range(config.unlearn_steps // passes_per_loop):
+    num_of_loops = int(len(forget_batches) * config.epochs)
+    for loop_num in range(num_of_loops):
+        batch_index = loop_num % len(forget_batches)
+        f_batch = forget_batches[batch_index]
+        r_batch = retain_batches[batch_index]
         model.train()
-        f_input_ids = next(forget_iter)
-        r_input_ids = next(retain_iter)
 
         if loop_num % h.fork_every_n_loops == 0:
             for p in interven_params:
@@ -89,17 +65,17 @@ def surgical_irreversible_unlearning(
         model.zero_grad(set_to_none=True)
         for p in interven_params:  # switch to base model
             p.data = p.base_data
-        output = model(r_input_ids)
-        loss = cross_entropy_loss(output, r_input_ids)
-        if config.additional_param_name == "rep_eng_retain_lr":
+        output = model(**r_batch)
+        retain_loss = cross_entropy_loss(output, r_batch["input_ids"])
+        if "rep_eng_retain_lr" in h:
             # ! representation engineering retain loss
             rep_eng_loss = circuit_breaker_retain_loss(
-                model, r_input_ids, frozen_model, square_norm=config.square_norm
+                model, r_batch, frozen_model, square_norm=h.square_norm
             )
             # note this loss is scaled both by this LR and retaining_rate
-            rep_eng_loss *= h.additional_param
-            loss += rep_eng_loss
-        loss.backward()
+            rep_eng_loss *= h.rep_eng_retain_lr
+            retain_loss += rep_eng_loss
+        retain_loss.backward()
         for p in interven_params:
             assert p.data.data_ptr() == p.base_data.data_ptr()
             # ! update disruption scores
@@ -108,19 +84,18 @@ def surgical_irreversible_unlearning(
             # ! retain update
             p.base_data -= h.retaining_rate * p.retain_acc
 
-        if not config.train_adversary:
+        if not h.train_adversary:
             for p in interven_params:
                 p.adv_data = p.base_data
 
-        # if unlearn:
         # ! relearn the adversary
         model.zero_grad(set_to_none=True)
         for p in interven_params:  # switch to adversary
             p.data = p.adv_data
-        output = model(f_input_ids)
-        if config.train_adversary:
-            loss = cross_entropy_loss(output, f_input_ids)
-            loss.backward(retain_graph=True)
+        output = model(**f_batch)
+        if h.train_adversary:
+            adversary_loss = cross_entropy_loss(output, f_batch["input_ids"])
+            adversary_loss.backward(retain_graph=True)
             for p in interven_params:
                 assert p.data.data_ptr() == p.adv_data.data_ptr()
                 # apply adversary update
@@ -132,74 +107,40 @@ def surgical_irreversible_unlearning(
         # ! unlearning step with masking
         # get unlearning grads loss from adversary
         # reuse the computation graph from previous block
+        pt.cuda.empty_cache()
         model.zero_grad(set_to_none=True)
-        loss_fn = loss_fns[config.unlearning_loss_fn]
-        loss = loss_fn(output, f_input_ids, clip_at)
-        loss.backward()
+        loss_fn = loss_fns[h.unlearning_loss_fn]
+        forget_loss = loss_fn(output, f_batch["input_ids"], clip_at)
+        forget_loss.backward()
         grad_norm = sum(p.grad.norm() ** 2 for p in interven_params) ** 0.5
         for p in interven_params:
             assert p.data.data_ptr() == p.adv_data.data_ptr()
 
-            if config.additional_param_name == "forget_momentum":
-                p.forget_acc *= h.additional_param
-                p.forget_acc += p.grad * (1 - h.additional_param)
+            if "forget_momentum" in h:
+                p.forget_acc *= h.forget_momentum
+                p.forget_acc += p.grad * (1 - h.forget_momentum)
                 p.grad = p.forget_acc.clone().detach()
 
-            if config.use_masking:
+            if h.use_masking:
                 mask = p.retain_acc.sign() == p.grad.sign()
                 p.grad *= mask
 
-            if config.additional_param_name == "discard_growing_weights":
+            if "discard_growing_weights" in h:
                 mask2 = p.base_data.sign() != p.grad.sign()
-                p.grad[mask2] *= h.additional_param
+                p.grad[mask2] *= h.discard_growing_weights
 
             # normalize
-            if config.normalize_grads:
+            if h.normalize_grads:
                 p.grad *= total_interven_numel**0.5 / grad_norm
 
             p.base_data -= h.unlearning_rate * p.grad
 
-            if config.additional_param_name == "adv_update":
-                assert config.train_adversary  # otherwise it may be wrong
-                p.adv_data -= h.unlearning_rate * p.grad * h.additional_param
+            if "adv_update" in h:
+                assert h.train_adversary  # otherwise it may be wrong
+                p.adv_data -= h.unlearning_rate * p.grad * h.adv_update
 
         # ! eval current loss
-        _passes_done = (loop_num + 1) * passes_per_loop
-        if _passes_done // 30 > _eval_counter:
-            _eval_counter += 1
-            for p in interven_params:  # switch to base model
-                p.data = p.base_data
-            res = eval_(
-                model,
-                f_eval,
-                r_eval,
-                allowed_r_loss,
-                _passes_done,
-                use_wandb=eval_wmdp_every is not None,
-            )
-            # _results.append(res | {"step": _passes_done})
-            # if soft_threshold is not None and res["retain_loss"] > soft_threshold:
-            #     if unlearn:
-            #         logging.info("unlearning disabled")
-            #     unlearn = False
-            # else:
-            #     if not unlearn:
-            #         logging.info("unlearning enabled")
-            #     unlearn = True
-
-        if eval_wmdp_every is not None and _passes_done % eval_wmdp_every == 0:
-            wmdp_acc = eval_on("wmdp_bio", model)
-            mmlu_acc = eval_on("filtered_mmlu", model)
-            wandb.log(
-                res | {"wmdp_accuracy": wmdp_acc, "mmlu_accuracy": mmlu_acc},
-                step=_passes_done,
-            )
-            print(f"wmdp_acc={wmdp_acc}, mmlu_acc={mmlu_acc}")
-
-            if allowed_mmlu_acc is not None and mmlu_acc < allowed_mmlu_acc:
-                logging.info(f"Pruning trial because mmlu accuracy is too low")
-                wandb.finish()
-                raise optuna.TrialPruned()
+        logging.info(f"step {loop_num} retain_loss={retain_loss.item()} forget_loss={forget_loss.item()}")
 
     for p in interven_params:  # switch to base model
         p.data = p.base_data

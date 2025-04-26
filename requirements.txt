@@ -22,3 +22,4 @@ kaleido
 psycopg2-binary
 modal
 PyYAML
+hydra-core

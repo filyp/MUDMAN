@@ -30,21 +30,6 @@ def save_img(fig, file_name):
     return dir_name / f"{file_name}.png"
 
 
-# def plot_slice_layout(study, dir_="plots/slice_layout"):
-#     layout = common_layout | dict(
-#         title={"text": study.study_name, "xanchor": "center", "x": 0.5, "y": 0.95},
-#     )
-
-#     slice_fig = vis.plot_slice(study, target_name="Final forget loss")
-#     slice_fig.update_layout(**layout)
-
-#     dir_name = repo_root() / dir_
-#     dir_name.mkdir(parents=True, exist_ok=True)
-#     slice_fig.write_image(dir_name / f"{study.study_name}.svg")
-#     slice_fig.write_image(dir_name / f"{study.study_name}.pdf")
-#     return slice_fig
-
-
 def stacked_slice_plot(
     studies: list[optuna.Study],
     all_trials: list[list[optuna.Trial]],

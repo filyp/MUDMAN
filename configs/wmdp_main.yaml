@@ -1,0 +1,59 @@
+study_config:
+  target_modules:
+    - up_proj
+    - down_proj
+    - gate_proj
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+  model_id: meta-llama/Llama-3.2-1B
+  retain_set_name: pile_bio_retain
+  forget_set_name: pile_bio_forget
+  epochs: 0.1
+  n_trials: 10
+
+relearn_config:
+  relearn_steps: 240  # 2x what the other runs use
+  relearn_lr: 3.0e-4
+
+hyperparams:
+  normalize_grads: true
+  unlearning_loss_fn: neg_entropy
+  use_masking: true
+  train_adversary: true
+  ###
+  adv_decay: 1
+  adv_lr: 0.001
+  fork_every_n_loops: 48
+  retain_momentum: 0.95
+  retaining_rate: [1.e-5, 1.e-3, true]
+  unlearning_rate: [1.e-7, 1.e-4, true]
+
+variants:
+
+  # ! loss functions
+  neg_entropy_loss: {}
+
+  # ! ablations
+  no_masking_ent:
+    use_masking: false
+  no_adversary_ent:
+    train_adversary: false
+  no_normalization_ent:
+    normalize_grads: false
+    unlearning_rate: [1.e-4, 1.e-1, true]
+
+  TAR2:
+    # it also has and target modules
+    # this run uses repE retain loss correctly, with squared norm
+    use_masking: false
+    retain_momentum: 0
+    rep_eng_retain_lr: 1
+    square_norm: true
+    normalize_grads: false
+    # because it uses no normalization
+    unlearning_rate: [1.e-4, 1.e-1, true]
+
+
+variant_num: 0

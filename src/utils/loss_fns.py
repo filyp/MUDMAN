@@ -64,22 +64,14 @@ def correct_logit_minus_avg_loss(output, input_ids, clip_at=0):
 
 def circuit_breaker_forget_loss(
     model,
-    forget_input_ids,
+    forget_inputs,
     target_layers,
     frozen_model=None,
     lora_model=None,
 ):
 
-    forget_attention_mask = pt.ones_like(forget_input_ids)
-
-    forget_inputs = dict(
-        input_ids=forget_input_ids,
-        attention_mask=forget_attention_mask,
-        output_hidden_states=True,
-    )
-
     # ===== loss components =====
-    layers_forget_attention_mask = forget_attention_mask.repeat(
+    layers_forget_attention_mask = forget_inputs["attention_mask"].repeat(
         len(target_layers), 1, 1
     ).unsqueeze(-1)
 
@@ -94,7 +86,7 @@ def circuit_breaker_forget_loss(
 
     frozen_model.eval()
     with pt.no_grad():
-        forget_outputs = frozen_model(**forget_inputs).hidden_states
+        forget_outputs = frozen_model(**forget_inputs, output_hidden_states=True).hidden_states
         forget_hidden = pt.stack([forget_outputs[l].detach() for l in target_layers])
     del forget_outputs
     gc.collect()
@@ -103,7 +95,7 @@ def circuit_breaker_forget_loss(
         lora_model.enable_adapter_layers()
     model.train()
 
-    lora_forget_outputs = model(**forget_inputs).hidden_states
+    lora_forget_outputs = model(**forget_inputs, output_hidden_states=True).hidden_states
     lora_forget_hidden = pt.stack([lora_forget_outputs[l] for l in target_layers])
 
     normalized_lora_forget_outputs = lora_forget_hidden / (
@@ -123,16 +115,8 @@ def circuit_breaker_forget_loss(
 
 
 def circuit_breaker_retain_loss(
-    model, retain_input_ids, frozen_model=None, lora_model=None, square_norm=False
+    model, retain_inputs, frozen_model=None, lora_model=None, square_norm=False
 ):
-
-    retain_attention_mask = pt.ones_like(retain_input_ids)
-
-    retain_inputs = dict(
-        input_ids=retain_input_ids,
-        attention_mask=retain_attention_mask,
-        output_hidden_states=True,
-    )
 
     if lora_model is not None:
         lora_model.disable_adapter_layers()
@@ -145,9 +129,9 @@ def circuit_breaker_retain_loss(
 
     frozen_model.eval()
     with pt.no_grad():
-        orig_retain_outputs = frozen_model(**retain_inputs).hidden_states
+        orig_retain_outputs = frozen_model(**retain_inputs, output_hidden_states=True).hidden_states
         orig_retain_hidden = pt.stack(orig_retain_outputs).detach()
-        layers_retain_attention_mask = retain_attention_mask.repeat(
+        layers_retain_attention_mask = retain_inputs["attention_mask"].repeat(
             len(orig_retain_outputs), 1, 1
         ).unsqueeze(-1)
         orig_retain_hidden *= layers_retain_attention_mask
@@ -159,7 +143,7 @@ def circuit_breaker_retain_loss(
         lora_model.enable_adapter_layers()
     model.train()
 
-    lora_retain_outputs = model(**retain_inputs).hidden_states
+    lora_retain_outputs = model(**retain_inputs, output_hidden_states=True).hidden_states
     lora_retain_hidden = pt.stack(lora_retain_outputs) * layers_retain_attention_mask
     diffs = lora_retain_hidden - orig_retain_hidden
     # the last hidden state is anomalously high (at least for pythia)

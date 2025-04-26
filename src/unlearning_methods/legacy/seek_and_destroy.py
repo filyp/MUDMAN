@@ -3,7 +3,7 @@ import logging
 import torch as pt
 from transformers import AutoModelForCausalLM
 
-from utils.circuit_creation import filter_and_normalize_circuit, get_circuit
+from archive.circuit_creation import filter_and_normalize_circuit, get_circuit
 from utils.training import *
 
 # warmup_steps = 20

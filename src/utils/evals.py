@@ -1,24 +1,17 @@
 """Evaluations for WMDP, MMLU, WMDP-Deduped."""
+
 # %%
 import torch as pt
 from transformers import AutoTokenizer
 
 from datasets import load_dataset
+from utils.data_loading_lowMI import load_low_mi_set, data_paths
 
 pt.set_default_device("cuda")
 answer_tokens = [" A", " B", " C", " D"]
 
 
 # %%
-def load_wmdp_deduped(paths, task="wmdp-deduped"):
-    base_url = "https://raw.githubusercontent.com/aghyad-deeb/unlearning_evaluation/refs/heads/main/data"
-    return load_dataset(
-        "json",
-        data_files=[f"{base_url}/{task}/{path}.jsonl" for path in paths],
-        split="train",
-    )
-
-
 def format_prompt(ex):
     # taken from https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/tasks/wmdp/_default_template_yaml
     # "The following are multiple choice questions (with answers) about biology."
@@ -58,15 +51,20 @@ filtered_mmlu = [ex for ex in mmlu_dataset if ex["subject"] not in categories_to
 
 
 def eval_on(dataset_name, model, batch_size=16, subset=None, temperature=0):
-    assert model.config.name_or_path in ["meta-llama/Llama-3.2-1B", "meta-llama/Llama-3.2-3B"]  # fmt: skip
+    assert model.config.name_or_path in [
+        "meta-llama/Llama-3.2-1B",
+        "meta-llama/Llama-3.2-3B",
+    ]
     pt.cuda.empty_cache()
-
-    dataset = dict(
-        wmdp_bio=load_dataset("cais/wmdp", "wmdp-bio")["test"],
-        wmdp_deduped_attack=load_wmdp_deduped(["split_0", "split_1", "split_2", "split_3"]),  # fmt: skip
-        wmdp_deduped_eval=load_wmdp_deduped(["split_4"]),
-        filtered_mmlu=filtered_mmlu,
-    )[dataset_name]
+    
+    match dataset_name:
+        case "wmdp_bio":
+            dataset = load_dataset("cais/wmdp", "wmdp-bio")["test"]
+        case "filtered_mmlu":
+            dataset = filtered_mmlu
+        case _:
+            assert dataset_name in ["wmdp_deduped_mcq_eval", "years_mcq_eval"]
+            dataset = load_low_mi_set(data_paths[dataset_name])
 
     tokenizer = AutoTokenizer.from_pretrained(model.config.name_or_path)
     tokenizer.pad_token = tokenizer.eos_token

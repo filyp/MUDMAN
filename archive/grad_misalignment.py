@@ -7,7 +7,7 @@ import torch as pt
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from utils.circuit_creation import *
+from archive.circuit_creation import *
 from utils.data_loading import CachedBatches, dataset_loaders
 from utils.training import *
 
