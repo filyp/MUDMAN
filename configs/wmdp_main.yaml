@@ -26,8 +26,8 @@ hyperparams:
   ###
   adv_decay: 1
   adv_lr: 0.0003
-  fork_every_n_loops: 48
-  retain_momentum: 0.95
+  fork_every_n_loops: [30, 300, false]
+  retain_momentum: [0, 1, false]
   retaining_rate: [1.e-7, 1.e-4, true]
   unlearning_rate: [1.e-10, 1.e-7, true]
 
