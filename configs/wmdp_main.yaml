@@ -56,3 +56,5 @@ variants:
 
 
 variant_num: 0
+extend_existing_study: false
+name: ???

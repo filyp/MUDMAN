@@ -140,7 +140,7 @@ def surgical_irreversible_unlearning(
                 p.adv_data -= h.unlearning_rate * p.grad * h.adv_update
 
         # ! eval current loss
-        logging.info(f"step {loop_num} retain_loss={retain_loss.item()} forget_loss={forget_loss.item()}")
+        logging.info(f"step {loop_num} \t retain_loss={retain_loss.item():.4f} \t forget_loss={forget_loss.item():.4f}")
 
     for p in interven_params:  # switch to base model
         p.data = p.base_data

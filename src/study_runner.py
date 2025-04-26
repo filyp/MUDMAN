@@ -1,9 +1,9 @@
 # %%
-# # necessary for determinism:
-# os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
-import hashlib
 import os
+
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # necessary for determinism:
+
 from copy import deepcopy
 
 import hydra
@@ -31,8 +31,7 @@ def run_study(cfg):
     variant_name, custom = list(cfg.variants.items())[cfg.variant_num]
     hyperparam_ranges = OmegaConf.merge(cfg.hyperparams, custom)
 
-    config_hash = hashlib.sha256(OmegaConf.to_yaml(cfg).encode()).hexdigest()
-    study_name = f"{config_hash[:4]}|{variant_name}"
+    study_name = f"{cfg.name}|{variant_name}"
     print(f"{study_name=}")
     print(f"{hyperparam_ranges=}")
 
@@ -70,21 +69,23 @@ def run_study(cfg):
         print(f"{wmdp_accuracy=} {mmlu_accuracy=}")
         # use min rather than last, in case it anomalously increases
         return wmdp_accuracy, mmlu_accuracy
-
-    study = optuna.create_study(
-        study_name=study_name,
-        storage=storage,
-        directions=["minimize", "maximize"],
-        load_if_exists=False,
-    )
-    study.set_metric_names(["wmdp_accuracy", "mmlu_accuracy"])
+    
+    if cfg.extend_existing_study:
+        study = optuna.load_study(study_name=study_name, storage=storage)
+    else:
+        study = optuna.create_study(
+            study_name=study_name,
+            storage=storage,
+            directions=["minimize", "maximize"],
+        )
+        study.set_metric_names(["wmdp_accuracy", "mmlu_accuracy"])
     study.set_user_attr("commit_hash", commit_hash())
     study.set_user_attr("is_repo_clean", is_repo_clean())
 
-    # # run remaining trials
-    # n_trials = max(0, study_config.n_trials - len(study.trials))
-    # print(f"{n_trials=}")
-    # study.optimize(objective, n_trials=n_trials)
+    # run remaining trials
+    n_trials = study_config.n_trials - len(study.trials)
+    logging.info(f"Trials existing: {len(study.trials)}, remaining: {n_trials}")
+    study.optimize(objective, n_trials=n_trials)
 
 
 if __name__ == "__main__":
