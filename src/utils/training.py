@@ -22,6 +22,27 @@ def set_seeds(seed):
     pt.use_deterministic_algorithms(True)
 
 
+def relearn(model, relearn_batches, config):
+    # relearning
+    set_seeds(42)
+    optimizer = pt.optim.SGD(model.parameters(), lr=config.lr)
+    for p in model.parameters():
+        p.requires_grad = True
+    num_of_loops = int(len(relearn_batches) * config.epochs)
+    for loop_num in range(num_of_loops):
+        model.train()
+        pt.cuda.empty_cache()
+        batch_index = loop_num % len(relearn_batches)
+        batch = relearn_batches[batch_index]
+
+        output = model(**batch)
+        loss = cross_entropy_loss(output, batch)
+        loss.backward()
+        optimizer.step()
+
+    return model
+
+
 def make_sure_optimal_values_are_not_near_range_edges(study):
     best_trial = study.best_trial  # ask only once because it's slow
     """Make sure the value is not in the top or bottom 10% of the range."""
@@ -64,47 +85,6 @@ def delete_study_if_exists(study_name, storage):
         optuna.delete_study(study_name=study_name, storage=storage)
     except KeyError:
         pass
-
-
-def relearn(model, config, retain_val_batches, forget_val_batches, use_lora=False):
-    for p in model.parameters():
-        p.requires_grad = True
-
-    # get batches
-    retain_val_iter = iter(retain_val_batches)
-    forget_val_iter = iter(forget_val_batches)
-    f_eval_batch = next(forget_val_iter)
-    r_eval_batch = next(retain_val_iter)
-
-    # if use_lora:
-    #     lora_config = LoraConfig(**config.relearn_lora_conf)
-    #     peft_model = get_peft_model(model, lora_config, adapter_name="relearning_lora")
-    #     model = peft_model.model
-
-    optimizer = pt.optim.SGD(model.parameters(), lr=config.relearn_lr)
-
-    # ! relearning loop
-    logging.info("")
-    f_losses = []
-    # each step is one pass (forward or backward) and a loop has two passes
-    passes_per_loop = 2
-    for loop_num in range(config.relearn_steps // passes_per_loop):
-        # standard forward, backward, and update
-        model.train()
-        optimizer.zero_grad(set_to_none=True)
-        f_input_ids = next(forget_val_iter)
-        loss_forget = cross_entropy_loss(model(f_input_ids), f_input_ids)
-        loss_forget.backward()
-        optimizer.step()
-
-        _passes_done = (loop_num + 1) * passes_per_loop
-        if _passes_done % 30 == 0:
-            res = eval_(model, f_eval_batch, r_eval_batch, step=_passes_done)
-            f_losses.append(res["forget_loss"])
-            # wandb.log(res, step=_passes_done)
-
-    logging.info("")
-    return f_losses
 
 
 # def only_grad_on(model, params_to_grad):

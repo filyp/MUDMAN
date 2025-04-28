@@ -56,12 +56,6 @@ data_paths = dict(
     ],
 )
 
-# load the origianl wmdp
-_wmdp_bio = load_dataset("cais/wmdp", "wmdp-bio")["test"].shuffle(seed=42)
-_wmdp_cyber = load_dataset("cais/wmdp", "wmdp-cyber")["test"].shuffle(seed=42)
-bio_questions = [ex["question"] for ex in _wmdp_bio]
-cyber_questions = [ex["question"] for ex in _wmdp_cyber]
-
 
 # bio=1065 cyber=1179 other=111, where other are due to small updates to official WMDP
 def load_low_mi_set(paths):
@@ -71,11 +65,17 @@ def load_low_mi_set(paths):
 
 
 def filter_by_question(corpus, category="bio", portion=1):
+    # load the origianl wmdp
+
     # optionally filter by category and cut out some portion
     if category == "bio":
+        _wmdp_bio = load_dataset("cais/wmdp", "wmdp-bio")["test"].shuffle(seed=42)
+        bio_questions = [ex["question"] for ex in _wmdp_bio]
         target_size = int(len(bio_questions) * portion)
         questions = bio_questions[:target_size]
     elif category == "cyber":
+        _wmdp_cyber = load_dataset("cais/wmdp", "wmdp-cyber")["test"].shuffle(seed=42)
+        cyber_questions = [ex["question"] for ex in _wmdp_cyber]
         target_size = int(len(cyber_questions) * portion)
         questions = cyber_questions[:target_size]
     else:
@@ -115,6 +115,6 @@ def load_retain_corpus(dataset_name):
                 split="train",
                 streaming=True,
             )
-            return corpus.take(100_000)
+            return corpus.take(2_500)
         case _:
             raise ValueError(f"Invalid dataset name: {dataset_name}")

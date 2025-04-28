@@ -6,10 +6,13 @@ os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # necessary for determinism:
 
 import logging
 from copy import deepcopy
+from types import SimpleNamespace
 
 import hydra
+import optuna
 import torch as pt
 from omegaconf import ListConfig, OmegaConf
+from transformers import AutoModelForCausalLM
 
 from datasets import load_dataset
 from unlearning import unlearn
@@ -21,8 +24,8 @@ from utils.data_loading import (
     load_retain_corpus,
 )
 from utils.evals import eval_on
-from utils.git_and_reproducibility import *
-from utils.training import set_seeds
+from utils.git_and_reproducibility import commit_hash, get_storage, is_repo_clean
+from utils.training import relearn, set_seeds
 
 
 @hydra.main(version_base="1.2", config_path="../configs", config_name="wmdp_main")
@@ -50,10 +53,22 @@ def run_study(cfg):
     retain_corpus = load_retain_corpus(s.retain_set_name)
     retain_batches = load_batches(retain_corpus, s.model_id, s.batch_size)
 
+    # load relearn set
+    rel_corpus = load_low_mi_set(data_paths[cfg.relearn_config.set_name])
+    rel_corpus = filter_by_question(rel_corpus, category=s.category, portion=s.portion)
+    relearn_batches = load_batches(rel_corpus, s.model_id, s.batch_size)
+
     # load unlearning eval set
     wmdp_set = load_low_mi_set(data_paths["wmdp_deduped_mcq_eval"])
     wmdp_set = filter_by_question(wmdp_set, category=s.category, portion=s.portion)
     mmlu_set = load_dataset("cais/mmlu", "all", split="validation")
+
+    # get initial accuracy
+    model = AutoModelForCausalLM.from_pretrained(s.model_id, torch_dtype=pt.bfloat16)
+    wmdp_accuracy = eval_on(wmdp_set, model, temperature=s.eval_temperature)
+    mmlu_accuracy = eval_on(mmlu_set, model, temperature=s.eval_temperature)
+    print(f"initial {wmdp_accuracy=} {mmlu_accuracy=}")
+    del model
 
     def objective(trial):
         # construct hyperparams
@@ -72,17 +87,18 @@ def run_study(cfg):
             forget_batches,
         )
 
-        # set_seeds(42)
-        # todo relearning
-        # forget_losses = relearn(
-        #     model, relearn_config, retain_val_batches, forget_val_batches
-        # )
+        accuracy = SimpleNamespace()
+        accuracy.wmdp_pre = eval_on(wmdp_set, model, temperature=s.eval_temperature)
+        accuracy.mmlu_pre = eval_on(mmlu_set, model, temperature=s.eval_temperature)
 
-        wmdp_accuracy = eval_on(wmdp_set, model)
-        mmlu_accuracy = eval_on(mmlu_set, model)
-        print(f"{wmdp_accuracy=} {mmlu_accuracy=}")
-        # use min rather than last, in case it anomalously increases
-        return wmdp_accuracy, mmlu_accuracy
+        model = relearn(model, relearn_batches, cfg.relearn_config)
+
+        accuracy.wmdp_post = eval_on(wmdp_set, model, temperature=s.eval_temperature)
+        accuracy.mmlu_post = eval_on(mmlu_set, model, temperature=s.eval_temperature)
+        for k, v in accuracy.__dict__.items():
+            trial.set_user_attr(k, v)
+            print(f"{k}={v}")
+        return accuracy.mmlu_pre, accuracy.wmdp_post
 
     if cfg.extend_existing_study:
         study = optuna.load_study(study_name=study_name, storage=storage)
@@ -90,9 +106,9 @@ def run_study(cfg):
         study = optuna.create_study(
             study_name=study_name,
             storage=storage,
-            directions=["minimize", "maximize"],
+            directions=["maximize", "minimize"],
         )
-        study.set_metric_names(["wmdp_accuracy", "mmlu_accuracy"])
+        study.set_metric_names(["mmlu_accuracy", "wmdp_accuracy"])
     study.set_user_attr("commit_hash", commit_hash())
     study.set_user_attr("is_repo_clean", is_repo_clean())
 
@@ -104,6 +120,3 @@ def run_study(cfg):
 
 if __name__ == "__main__":
     run_study()
-
-
-# todo train only on attention_mask=1

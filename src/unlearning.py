@@ -4,20 +4,18 @@ from copy import deepcopy
 import torch as pt
 from transformers import AutoModelForCausalLM
 
-from utils.loss_fns import loss_fns, cross_entropy_loss, circuit_breaker_retain_loss
+from utils.loss_fns import circuit_breaker_retain_loss, cross_entropy_loss, loss_fns
 
 
 def unlearn(
     h,
-    config,
+    conf,
     retain_batches,
     forget_batches,
 ):
     h.fork_every_n_loops = int(h.fork_every_n_loops)
 
-    model = AutoModelForCausalLM.from_pretrained(
-        config.model_id, torch_dtype=pt.bfloat16
-    )
+    model = AutoModelForCausalLM.from_pretrained(conf.model_id, torch_dtype=pt.bfloat16)
     model.config.use_cache = False
 
     clip_at = h.clip_at if "clip_at" in h else 0
@@ -26,7 +24,7 @@ def unlearn(
     interven_params = [
         p
         for name, p in model.named_parameters()
-        if any(f"{m}.weight" in name for m in config.target_modules)
+        if any(f"{m}.weight" in name for m in conf.target_modules)
     ]
     # normalizing by the total number of parameters ** 0.5 is useful for
     # experiments with varying target modules, to make unlearning rate comparable
@@ -49,7 +47,7 @@ def unlearn(
         frozen_model.eval()
 
     # ! unlearning loop
-    num_of_loops = int(len(forget_batches) * config.unlearning_epochs)
+    num_of_loops = int(len(forget_batches) * conf.unlearning_epochs)
     for loop_num in range(num_of_loops):
         batch_index = loop_num % len(forget_batches)
         f_batch = forget_batches[batch_index]
@@ -149,7 +147,9 @@ def unlearn(
             output = model(**r_eval_batch)
             retain_loss = cross_entropy_loss(output, r_eval_batch)
 
-            logging.info(f"step {loop_num} \t retain_loss={retain_loss.item():.4f} \t forget_loss={forget_loss.item():.4f}")
+            logging.info(
+                f"step {loop_num} \t retain_loss={retain_loss.item():.4f} \t forget_loss={forget_loss.item():.4f}"
+            )
 
     for p in interven_params:  # switch to base model
         p.data = p.base_data
