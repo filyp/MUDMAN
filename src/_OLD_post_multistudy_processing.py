@@ -6,7 +6,7 @@ import yaml
 
 from utils.git_and_reproducibility import *
 from utils.model_operations import *
-from utils.plots_and_stats import *
+from plotting.plots_and_stats import *
 from utils.training import (
     get_stats_from_last_n_trials,
     make_sure_optimal_values_are_not_near_range_edges,

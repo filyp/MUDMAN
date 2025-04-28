@@ -6,7 +6,7 @@ from transformers import AutoModelForCausalLM
 
 from utils.git_and_reproducibility import repo_root
 from utils.model_operations import get_thresh
-from utils.plots_and_stats import visualize_param
+from plotting.plots_and_stats import visualize_param
 from utils.training import eval_
 from utils.loss_fns import *
 
