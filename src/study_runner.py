@@ -47,16 +47,16 @@ def run_study(cfg):
     # load forget set
     _f_corpus = load_low_mi_set(data_paths[s.forget_set_name])
     _f_corpus = filter_by_question(_f_corpus, category=s.category, portion=s.portion)
-    forget_batches = load_batches(_f_corpus, s.model_id, s.batch_size)
+    forget_batches = load_batches(_f_corpus, s.model_id, s.batch_size, s.max_length)
 
     # load retain set
     retain_corpus = load_retain_corpus(s.retain_set_name)
-    retain_batches = load_batches(retain_corpus, s.model_id, s.batch_size)
+    retain_batches = load_batches(retain_corpus, s.model_id, s.batch_size, s.max_length)
 
     # load relearn set
     rel_corpus = load_low_mi_set(data_paths[cfg.relearn_config.set_name])
     rel_corpus = filter_by_question(rel_corpus, category=s.category, portion=s.portion)
-    relearn_batches = load_batches(rel_corpus, s.model_id, s.batch_size)
+    relearn_batches = load_batches(rel_corpus, s.model_id, s.batch_size, s.max_length)
 
     # load unlearning eval set
     wmdp_set = load_low_mi_set(data_paths["wmdp_deduped_mcq_eval"])
@@ -83,7 +83,7 @@ def run_study(cfg):
                 hyperparams[hp_name] = trial.suggest_float(hp_name, low, high, log=log)
         logging.info(f"trial {trial.number} - {trial.params}")
 
-        wandb.init(project="wmdp", name=study_name + f"_{trial.number}")
+        wandb.init(project="wmdp2", name=f"{trial.number}", group=study_name)
         set_seeds(42)
 
         print("unlearning...")

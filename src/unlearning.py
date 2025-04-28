@@ -61,6 +61,7 @@ def unlearn(
 
         if loop_num % h.fork_every_n_loops == 0:
             for p in interven_params:
+                pt.cuda.empty_cache()
                 p.adv_data = p.base_data.clone().detach()
 
         model.train()
