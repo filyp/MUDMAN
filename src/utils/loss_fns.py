@@ -3,27 +3,38 @@ import gc
 import torch as pt
 
 
-def cross_entropy_loss(output, input_ids, _dummy=None):
-    return pt.nn.CrossEntropyLoss()(
-        output.logits[:, :-1, :].flatten(end_dim=1).to(pt.float32),
-        input_ids[:, 1:].flatten(),
-    )
+def cross_entropy_loss(output, batch, _dummy=None):
+    # return pt.nn.CrossEntropyLoss()(
+    #     output.logits[:, :-1, :].flatten(end_dim=1).to(pt.float32),
+    #     input_ids[:, 1:].flatten(),
+    # )
+    logits = output.logits[:, :-1, :].flatten(end_dim=1).to(pt.float32)
+    ids = batch["input_ids"][:, 1:].flatten()
+    attn_mask = batch["attention_mask"][:, 1:].flatten()
+    probs = pt.nn.functional.softmax(logits, dim=-1)
+    true_probs = probs[pt.arange(len(ids)), ids]
+    logs = -pt.log(true_probs)
+    logs *= attn_mask
+    return logs.sum() / attn_mask.sum()
 
 
-def neg_cross_entropy_loss(output, input_ids, _dummy=None):
-    return -cross_entropy_loss(output, input_ids)
+def neg_cross_entropy_loss(output, batch, _dummy=None):
+    return -cross_entropy_loss(output, batch)
 
 
-def stream_activation_loss(output, input_ids, _dummy=None):
-    return sum(
-        activation.norm(dim=-1).mean() ** 2
-        # last activation is huge for some reason, so ignore it
-        for activation in output.hidden_states[:-1]
-    )
+def stream_activation_loss(output, batch, _dummy=None):
+    # last activation is huge for some reason, so ignore it
+    acc = 0
+    flat_attn_mask = batch["attention_mask"].reshape(-1, 1)
+    for layer_acts in output.hidden_states[:-1]:
+        flat_acts = layer_acts.flatten(end_dim=1)
+        flat_acts *= flat_attn_mask
+        acc += flat_acts.norm(dim=-1).mean() ** 2
+    return acc / flat_attn_mask.sum()
 
 
 # adapted from https://github.com/rishub-tamirisa/tamper-resistance/blob/41b749ca4d9bcb7608c7ead2ca48b0508714af99/modules/objectives.py#L114
-def neg_entropy_loss(output, input_ids, _dummy=None) -> pt.Tensor:
+def neg_entropy_loss(output, batch, _dummy=None) -> pt.Tensor:
     """
     Compute the negative mean entropy loss for the given logits.
 
@@ -37,29 +48,22 @@ def neg_entropy_loss(output, input_ids, _dummy=None) -> pt.Tensor:
     logits = output.logits
     softmax = pt.nn.functional.softmax(logits, dim=-1)
     log_softmax = pt.nn.functional.log_softmax(logits, dim=-1)
-    entropy = pt.sum(-softmax * log_softmax, dim=-1).mean()
-    return entropy.mean() * -1
+    neg_entropy = -pt.sum(-softmax * log_softmax, dim=-1)
+    neg_entropy *= batch["attention_mask"]
+    return neg_entropy.sum() / batch["attention_mask"].sum()
 
 
-def biased_neg_entropy_loss(output, input_ids, correct_logit_bias) -> pt.Tensor:
+def correct_logit_minus_avg_loss(output, batch, clip_at=0):
     logits = output.logits[:, :-1, :].flatten(end_dim=1).to(pt.float32)
-    ids = input_ids[:, 1:].flatten()
-    # shift up the correct logits, so that they'll need to be brought further down
-    logits[pt.arange(len(ids)), ids] += correct_logit_bias
-    # calculate entropy
-    softmax = pt.nn.functional.softmax(logits, dim=-1)
-    log_softmax = pt.nn.functional.log_softmax(logits, dim=-1)
-    entropy = pt.sum(-softmax * log_softmax, dim=-1).mean()
-    return entropy.mean() * -1
-
-
-def correct_logit_minus_avg_loss(output, input_ids, clip_at=0):
-    logits = output.logits[:, :-1, :].flatten(end_dim=1).to(pt.float32)
-    ids = input_ids[:, 1:].flatten()
+    ids = batch["input_ids"][:, 1:].flatten()
     true_logits = logits[pt.arange(len(ids)), ids]
     true_logits -= logits.mean(dim=-1)
     true_logits = true_logits.clip(min=clip_at)
-    return true_logits.mean()
+
+    attn_mask = batch["attention_mask"][:, 1:].flatten()
+    true_logits *= attn_mask
+    return true_logits.sum() / attn_mask.sum()
+
 
 
 def circuit_breaker_forget_loss(
@@ -71,9 +75,9 @@ def circuit_breaker_forget_loss(
 ):
 
     # ===== loss components =====
-    layers_forget_attention_mask = forget_inputs["attention_mask"].repeat(
-        len(target_layers), 1, 1
-    ).unsqueeze(-1)
+    layers_forget_attention_mask = (
+        forget_inputs["attention_mask"].repeat(len(target_layers), 1, 1).unsqueeze(-1)
+    )
 
     if lora_model is not None and frozen_model is None:
         lora_model.disable_adapter_layers()
@@ -86,7 +90,9 @@ def circuit_breaker_forget_loss(
 
     frozen_model.eval()
     with pt.no_grad():
-        forget_outputs = frozen_model(**forget_inputs, output_hidden_states=True).hidden_states
+        forget_outputs = frozen_model(
+            **forget_inputs, output_hidden_states=True
+        ).hidden_states
         forget_hidden = pt.stack([forget_outputs[l].detach() for l in target_layers])
     del forget_outputs
     gc.collect()
@@ -95,7 +101,9 @@ def circuit_breaker_forget_loss(
         lora_model.enable_adapter_layers()
     model.train()
 
-    lora_forget_outputs = model(**forget_inputs, output_hidden_states=True).hidden_states
+    lora_forget_outputs = model(
+        **forget_inputs, output_hidden_states=True
+    ).hidden_states
     lora_forget_hidden = pt.stack([lora_forget_outputs[l] for l in target_layers])
 
     normalized_lora_forget_outputs = lora_forget_hidden / (
@@ -129,11 +137,15 @@ def circuit_breaker_retain_loss(
 
     frozen_model.eval()
     with pt.no_grad():
-        orig_retain_outputs = frozen_model(**retain_inputs, output_hidden_states=True).hidden_states
+        orig_retain_outputs = frozen_model(
+            **retain_inputs, output_hidden_states=True
+        ).hidden_states
         orig_retain_hidden = pt.stack(orig_retain_outputs).detach()
-        layers_retain_attention_mask = retain_inputs["attention_mask"].repeat(
-            len(orig_retain_outputs), 1, 1
-        ).unsqueeze(-1)
+        layers_retain_attention_mask = (
+            retain_inputs["attention_mask"]
+            .repeat(len(orig_retain_outputs), 1, 1)
+            .unsqueeze(-1)
+        )
         orig_retain_hidden *= layers_retain_attention_mask
 
     del orig_retain_outputs
@@ -143,7 +155,9 @@ def circuit_breaker_retain_loss(
         lora_model.enable_adapter_layers()
     model.train()
 
-    lora_retain_outputs = model(**retain_inputs, output_hidden_states=True).hidden_states
+    lora_retain_outputs = model(
+        **retain_inputs, output_hidden_states=True
+    ).hidden_states
     lora_retain_hidden = pt.stack(lora_retain_outputs) * layers_retain_attention_mask
     diffs = lora_retain_hidden - orig_retain_hidden
     # the last hidden state is anomalously high (at least for pythia)
@@ -153,6 +167,15 @@ def circuit_breaker_retain_loss(
         return pt.norm(diffs, dim=-1, p=2, dtype=pt.float).pow(2).nanmean()
     else:
         return pt.norm(diffs, dim=-1, p=2, dtype=pt.float).nanmean()
+
+
+loss_fns = dict(
+    cross_entropy=cross_entropy_loss,
+    neg_cross_entropy=neg_cross_entropy_loss,
+    neg_entropy=neg_entropy_loss,
+    correct_logit_minus_avg=correct_logit_minus_avg_loss,
+    stream_activation=stream_activation_loss,
+)
 
 
 # def correct_logit_loss(output, input_ids):
@@ -224,18 +247,20 @@ def circuit_breaker_retain_loss(
 #     return losses.mean()
 
 
-loss_fns = dict(
-    cross_entropy=cross_entropy_loss,
-    neg_cross_entropy=neg_cross_entropy_loss,
-    neg_entropy=neg_entropy_loss,
-    correct_logit_minus_avg=correct_logit_minus_avg_loss,
-    stream_activation=stream_activation_loss,
-)
-
-
 # # simpler way to get all the loss functions
 # loss_fns = {
 #     name: obj
 #     for name, obj in globals().items()
 #     if callable(obj) and not name.startswith("_") and obj.__module__ == __name__
 # }
+
+# def biased_neg_entropy_loss(output, input_ids, correct_logit_bias) -> pt.Tensor:
+#     logits = output.logits[:, :-1, :].flatten(end_dim=1).to(pt.float32)
+#     ids = input_ids[:, 1:].flatten()
+#     # shift up the correct logits, so that they'll need to be brought further down
+#     logits[pt.arange(len(ids)), ids] += correct_logit_bias
+#     # calculate entropy
+#     softmax = pt.nn.functional.softmax(logits, dim=-1)
+#     log_softmax = pt.nn.functional.log_softmax(logits, dim=-1)
+#     entropy = pt.sum(-softmax * log_softmax, dim=-1).mean()
+#     return entropy.mean() * -1

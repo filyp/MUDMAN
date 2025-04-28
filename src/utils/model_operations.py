@@ -11,35 +11,35 @@ from utils.training import eval_
 from utils.evals import eval_on
 
 
-def only_grad_on(model, params_to_grad):
-    for param in model.parameters():
-        param.requires_grad = False
-    for param in params_to_grad:
-        param.requires_grad = True
+# def only_grad_on(model, params_to_grad):
+#     for param in model.parameters():
+#         param.requires_grad = False
+#     for param in params_to_grad:
+#         param.requires_grad = True
 
 
-def get_thresh(quantile, disruption_scores):
-    """
-    Calculate threshold value for parameter masking, based on the quantile.
-    For example, if quantile is 0.01, the threshould will cut off 1% of the highest scores.
-    """
-    flat_scores = pt.cat([s.flatten() for s in disruption_scores])
-    return pt.quantile(flat_scores, 1 - quantile, interpolation="lower")
+# def get_thresh(quantile, disruption_scores):
+#     """
+#     Calculate threshold value for parameter masking, based on the quantile.
+#     For example, if quantile is 0.01, the threshould will cut off 1% of the highest scores.
+#     """
+#     flat_scores = pt.cat([s.flatten() for s in disruption_scores])
+#     return pt.quantile(flat_scores, 1 - quantile, interpolation="lower")
 
 
-def copy_model_and_collapse_loras(peft_model, delete_adv=True):
-    """
-    Creates a copy of the model with retention LoRA merged and adversarial LoRA removed.
-    """
-    peft_model_copy = deepcopy(peft_model)
-    # delete adversarial lora
-    if delete_adv:
-        peft_model_copy.delete_adapter("adv_lora")
-    # merge and unload helper lora
-    peft_model_copy.set_adapter(["ret_lora"])
-    collapsed = peft_model_copy.merge_and_unload()
-    del collapsed.peft_config
-    return collapsed
+# def copy_model_and_collapse_loras(peft_model, delete_adv=True):
+#     """
+#     Creates a copy of the model with retention LoRA merged and adversarial LoRA removed.
+#     """
+#     peft_model_copy = deepcopy(peft_model)
+#     # delete adversarial lora
+#     if delete_adv:
+#         peft_model_copy.delete_adapter("adv_lora")
+#     # merge and unload helper lora
+#     peft_model_copy.set_adapter(["ret_lora"])
+#     collapsed = peft_model_copy.merge_and_unload()
+#     del collapsed.peft_config
+#     return collapsed
 
 
 def relearn(model, config, retain_val_batches, forget_val_batches, use_lora=False):

@@ -15,22 +15,6 @@ def repo_root() -> Path:
     return Path(root)
 
 
-def commit_hash() -> str:
-    return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-
-
-def is_repo_clean() -> bool:
-    """Check that git repository has no uncommitted changes."""
-    staged = subprocess.run(["git", "diff", "--staged", "--quiet"]).returncode == 0
-    unstaged = subprocess.run(["git", "diff", "--quiet"]).returncode == 0
-    return staged and unstaged
-
-
-def add_tag_to_current_commit(tag: str) -> None:
-    """Add a git tag to the current commit. Fails if the tag already exists."""
-    subprocess.run(["git", "tag", tag], check=True)
-
-
 def _remote_storage(db_url):
     return optuna.storages.RDBStorage(
         url=db_url,
@@ -56,6 +40,23 @@ def get_storage(db_url=None):
         path = os.path.relpath(path, Path.cwd())
         return f"sqlite:///{path}"
 
+
+def commit_hash() -> str:
+    return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+
+
+def is_repo_clean() -> bool:
+    """Check that git repository has no uncommitted changes."""
+    staged = subprocess.run(["git", "diff", "--staged", "--quiet"]).returncode == 0
+    unstaged = subprocess.run(["git", "diff", "--quiet"]).returncode == 0
+    return staged and unstaged
+
+
+# def add_tag_to_current_commit(tag: str) -> None:
+#     """Add a git tag to the current commit. Fails if the tag already exists."""
+#     subprocess.run(["git", "tag", tag], check=True)
+
+
 # def get_last_study(num=-1):
 #     storage = get_storage()
 #     # redisstorage may be faster https://github.com/optuna/optuna/pull/974
@@ -65,10 +66,10 @@ def get_storage(db_url=None):
 #     return optuna.load_study(study_name=latest_study.study_name, storage=storage)
 
 
-def get_first_line_of_last_commit():
-    cmd = ["git", "log", "-1", "--pretty=%B"]
-    return subprocess.check_output(cmd, text=True).splitlines()[0]
+# def get_first_line_of_last_commit():
+#     cmd = ["git", "log", "-1", "--pretty=%B"]
+#     return subprocess.check_output(cmd, text=True).splitlines()[0]
 
 
-def get_dirty_files():
-    return subprocess.check_output(["git", "diff", "--name-only"], text=True)
+# def get_dirty_files():
+#     return subprocess.check_output(["git", "diff", "--name-only"], text=True)

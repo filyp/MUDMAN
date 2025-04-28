@@ -11,7 +11,7 @@ import hydra
 import torch as pt
 from omegaconf import ListConfig, OmegaConf
 
-from unlearning_methods.general import unlearn
+from unlearning_methods.unlearning import unlearn
 from utils.data_loading import load_batches
 from utils.evals import eval_on
 from utils.git_and_reproducibility import *
