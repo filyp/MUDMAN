@@ -5,7 +5,7 @@ import torch as pt
 from transformers import AutoTokenizer
 
 from datasets import load_dataset
-from utils.data_loading import load_low_mi_set, data_paths
+from utils.data_loading import data_paths, load_low_mi_set
 
 pt.set_default_device("cuda")
 answer_tokens = [" A", " B", " C", " D"]
@@ -22,48 +22,38 @@ B. {ex["choices"][1]}
 C. {ex["choices"][2]}
 D. {ex["choices"][3]}
 Answer:"""
-    # Answer (just A, B, C or D):"""
 
 
-def load_filtered_mmlu_dataset():
-    # %% prepare filtered mmlu dataset
-    mmlu_dataset = load_dataset("cais/mmlu", "all", split="validation")
+# def load_filtered_mmlu_dataset():
+#     # %% prepare filtered mmlu dataset
+#     mmlu_dataset = load_dataset("cais/mmlu", "all", split="validation")
 
-    # filter out all the subcategories of biology and health
-    # keep even the ones like anatomy, clinical_knowledge and professional_medicine,
-    # because they contain some questions about molecular biology
-    categories_to_reject = {
-        "college_biology",
-        "college_medicine",
-        "high_school_biology",
-        "human_aging",
-        "medical_genetics",
-        "nutrition",
-        "professional_medicine",
-        "virology",
-        "anatomy",
-        "clinical_knowledge",
-    }
-    # filter out the ones in the categories_to_reject
-    return [ex for ex in mmlu_dataset if ex["subject"] not in categories_to_reject]
+#     # filter out all the subcategories of biology and health
+#     # keep even the ones like anatomy, clinical_knowledge and professional_medicine,
+#     # because they contain some questions about molecular biology
+#     categories_to_reject = {
+#         "college_biology",
+#         "college_medicine",
+#         "high_school_biology",
+#         "human_aging",
+#         "medical_genetics",
+#         "nutrition",
+#         "professional_medicine",
+#         "virology",
+#         "anatomy",
+#         "clinical_knowledge",
+#     }
+#     # filter out the ones in the categories_to_reject
+#     return [ex for ex in mmlu_dataset if ex["subject"] not in categories_to_reject]
 
 
 # %%
-def eval_on(dataset_name, model, batch_size=16, subset=None, temperature=0):
+def eval_on(dataset, model, batch_size=16, subset=None, temperature=0):
     assert model.config.name_or_path in [
         "meta-llama/Llama-3.2-1B",
         "meta-llama/Llama-3.2-3B",
     ]
     pt.cuda.empty_cache()
-    
-    match dataset_name:
-        case "wmdp_bio":
-            dataset = load_dataset("cais/wmdp", "wmdp-bio")["test"]
-        case "filtered_mmlu":
-            dataset = load_filtered_mmlu_dataset()
-        case _:
-            assert dataset_name in ["wmdp_deduped_mcq_eval", "years_mcq_eval"]
-            dataset = load_low_mi_set(data_paths[dataset_name])
 
     tokenizer = AutoTokenizer.from_pretrained(model.config.name_or_path)
     tokenizer.pad_token = tokenizer.eos_token

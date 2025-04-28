@@ -1,4 +1,6 @@
 # %%
+import random
+
 from transformers import AutoTokenizer
 
 from datasets import load_dataset
@@ -22,22 +24,22 @@ data_paths = dict(
     wmdp_deduped_mcq_eval=[
         "wmdp-deduped/split_4.jsonl",
     ],
-    years_unlearning=[
-        "dates-years-trimmed/corpus_split_0.jsonl",
-        "dates-years-trimmed/corpus_split_1.jsonl",
-        "dates-years-trimmed/corpus_split_2.jsonl",
-        "dates-years-trimmed/corpus_split_3.jsonl",
-        "dates-years-trimmed/corpus_split_4.jsonl",
-    ],
-    years_relearning=[
-        "dates-years-trimmed/corpus_split_0.jsonl",
-        "dates-years-trimmed/corpus_split_1.jsonl",
-        "dates-years-trimmed/corpus_split_2.jsonl",
-        "dates-years-trimmed/corpus_split_3.jsonl",
-    ],
-    years_mcq_eval=[
-        "dates-years-trimmed/split_4.jsonl",
-    ],
+    # years_unlearning=[
+    #     "dates-years-trimmed/corpus_split_0.jsonl",
+    #     "dates-years-trimmed/corpus_split_1.jsonl",
+    #     "dates-years-trimmed/corpus_split_2.jsonl",
+    #     "dates-years-trimmed/corpus_split_3.jsonl",
+    #     "dates-years-trimmed/corpus_split_4.jsonl",
+    # ],
+    # years_relearning=[
+    #     "dates-years-trimmed/corpus_split_0.jsonl",
+    #     "dates-years-trimmed/corpus_split_1.jsonl",
+    #     "dates-years-trimmed/corpus_split_2.jsonl",
+    #     "dates-years-trimmed/corpus_split_3.jsonl",
+    # ],
+    # years_mcq_eval=[
+    #     "dates-years-trimmed/split_4.jsonl",
+    # ],
     # mmlu_forget = [
     #     "mmlu_cats_random_trimmed/corpus_mmlu_STEM.jsonl",
     #     "mmlu_cats_random_trimmed/corpus_mmlu_business.jsonl",
@@ -54,19 +56,41 @@ data_paths = dict(
     ],
 )
 
+# load the origianl wmdp
+_wmdp_bio = load_dataset("cais/wmdp", "wmdp-bio")["test"].shuffle(seed=42)
+_wmdp_cyber = load_dataset("cais/wmdp", "wmdp-cyber")["test"].shuffle(seed=42)
+bio_questions = [ex["question"] for ex in _wmdp_bio]
+cyber_questions = [ex["question"] for ex in _wmdp_cyber]
 
+
+# bio=1065 cyber=1179 other=111, where other are due to small updates to official WMDP
 def load_low_mi_set(paths):
     return load_dataset(
         "json", data_files=[f"{base_url}/{path}" for path in paths], split="train"
     )
 
 
-def load_batches(model_id, dataset_name, batch_size=4, max_length=128):
+def filter_by_question(corpus, category="bio", portion=1):
+    # optionally filter by category and cut out some portion
+    if category == "bio":
+        target_size = int(len(bio_questions) * portion)
+        questions = bio_questions[:target_size]
+    elif category == "cyber":
+        target_size = int(len(cyber_questions) * portion)
+        questions = cyber_questions[:target_size]
+    else:
+        raise ValueError(f"Invalid category: {category}, choose from bio or cyber")
+
+    if "original_question" in corpus.features:
+        return corpus.filter(lambda ex: ex["original_question"] in questions)
+    else:
+        return corpus.filter(lambda ex: ex["question"] in questions)
+
+
+def load_batches(corpus, model_id, batch_size=4, max_length=128):
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.pad_token = tokenizer.eos_token
 
-    paths = data_paths[dataset_name]
-    corpus = load_low_mi_set(paths)
     corpus = corpus.shuffle(seed=42)
     corpus = corpus.batch(batch_size)
     batches = [
@@ -82,4 +106,15 @@ def load_batches(model_id, dataset_name, batch_size=4, max_length=128):
     return batches
 
 
-# %%
+def load_retain_corpus(dataset_name):
+    match dataset_name:
+        case "fineweb_edu":
+            corpus = load_dataset(
+                "HuggingFaceFW/fineweb-edu",
+                name="sample-10BT",
+                split="train",
+                streaming=True,
+            )
+            return corpus.take(100_000)
+        case _:
+            raise ValueError(f"Invalid dataset name: {dataset_name}")
