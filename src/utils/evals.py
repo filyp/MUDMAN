@@ -48,7 +48,7 @@ Answer:"""
 
 
 # %%
-def eval_on(dataset, model, batch_size=16, subset=None, temperature=0):
+def eval_on(dataset, model, batch_size=4, subset=None, temperature=0):
     assert model.config.name_or_path in [
         "meta-llama/Llama-3.2-1B",
         "meta-llama/Llama-3.2-3B",

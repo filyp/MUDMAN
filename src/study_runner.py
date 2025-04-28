@@ -67,8 +67,9 @@ def run_study(cfg):
     def _eval_callback(model):
         model.eval()
         # eval mmlu and wmdp
-        mmlu_acc = eval_on(mmlu_set, model, temperature=s.eval_temperature)
-        wmdp_acc = eval_on(wmdp_set, model, temperature=s.eval_temperature)
+        with pt.no_grad():
+            mmlu_acc = eval_on(mmlu_set, model, temperature=s.eval_temperature)
+            wmdp_acc = eval_on(wmdp_set, model, temperature=s.eval_temperature)
         logging.info(f"mmlu_acc={mmlu_acc} wmdp_acc={wmdp_acc}")
         wandb.log({"mmlu_acc": mmlu_acc, "wmdp_acc": wmdp_acc})
         return mmlu_acc, wmdp_acc

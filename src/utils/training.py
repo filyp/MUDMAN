@@ -45,12 +45,12 @@ def relearn(model, relearn_batches, conf, eval_callback):
         loss.backward()
         optimizer.step()
 
-        if loop_num % 100 == 0:
-            model.eval()
-            eval_batch = relearn_batches[0]
-            output = model(**eval_batch)
-            loss = cross_entropy_loss(output, eval_batch)
-            logging.info(f"step {loop_num} \t relearn_loss={loss.item():.4f}")
+        # if loop_num % 100 == 0:
+        #     model.eval()
+        #     eval_batch = relearn_batches[0]
+        #     output = model(**eval_batch)
+        #     loss = cross_entropy_loss(output, eval_batch)
+        #     logging.info(f"step {loop_num} \t relearn_loss={loss.item():.4f}")
 
     return model
 

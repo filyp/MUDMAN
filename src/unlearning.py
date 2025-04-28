@@ -142,19 +142,18 @@ def unlearn(
                 assert h.train_adversary  # otherwise it may be wrong
                 p.adv_data -= h.unlearning_rate * p.grad * h.adv_update
 
-        # ! eval current loss
-        if loop_num % 100 == 0:
-            model.eval()
-            f_eval_batch = forget_batches[0]
-            output = model(**f_eval_batch)
-            forget_loss = cross_entropy_loss(output, f_eval_batch)
-            r_eval_batch = retain_batches[0]
-            output = model(**r_eval_batch)
-            retain_loss = cross_entropy_loss(output, r_eval_batch)
-
-            logging.info(
-                f"step {loop_num} \t retain_loss={retain_loss.item():.4f} \t forget_loss={forget_loss.item():.4f}"
-            )
+        # # ! eval current loss
+        # if loop_num % 100 == 0:
+        #     model.eval()
+        #     f_eval_batch = forget_batches[0]
+        #     output = model(**f_eval_batch)
+        #     forget_loss = cross_entropy_loss(output, f_eval_batch)
+        #     r_eval_batch = retain_batches[0]
+        #     output = model(**r_eval_batch)
+        #     retain_loss = cross_entropy_loss(output, r_eval_batch)
+        #     logging.info(
+        #         f"step {loop_num} \t retain_loss={retain_loss.item():.4f} \t forget_loss={forget_loss.item():.4f}"
+        #     )
 
     for p in interven_params:  # switch to base model
         p.data = p.base_data
