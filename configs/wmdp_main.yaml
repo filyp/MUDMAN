@@ -8,19 +8,19 @@ study_config:
     - v_proj
     - o_proj
   model_id: meta-llama/Llama-3.2-1B
-  unlearning_epochs: 3
+  unlearning_epochs: 5
   n_trials: 200
   batch_size: 2
   forget_set_name: wmdp_deduped_unlearning
   retain_set_name: fineweb_edu
   category: bio
-  portion: 0.1
+  portion: 0.25
   eval_temperature: 1
 
 relearn_config:
   set_name: wmdp_deduped_relearning
-  epochs: 3
-  lr: 1.0e-4
+  epochs: 5
+  lr: 2.0e-5
 
 hyperparams:
   normalize_grads: true
@@ -29,11 +29,11 @@ hyperparams:
   train_adversary: true
   ###
   adv_decay: 1
-  adv_lr: 0.0003
-  fork_every_n_loops: [60, 400, false]
+  adv_lr: 0.0001
+  fork_every_n_loops: 50  # [30, 300, false]
   retain_momentum: 0.8
-  retaining_rate: 1.e-5
-  unlearning_rate: [1.e-10, 1.e-7, true]
+  retaining_rate: 1.e-6
+  unlearning_rate: [1.e-8, 5.e-7, true]
 
 variants:
   # ! loss functions

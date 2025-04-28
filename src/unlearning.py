@@ -4,6 +4,7 @@ from copy import deepcopy
 import torch as pt
 from transformers import AutoModelForCausalLM
 
+from utils.evals import eval_on
 from utils.loss_fns import circuit_breaker_retain_loss, cross_entropy_loss, loss_fns
 
 
@@ -12,6 +13,7 @@ def unlearn(
     conf,
     retain_batches,
     forget_batches,
+    eval_callback,
 ):
     h.fork_every_n_loops = int(h.fork_every_n_loops)
 
@@ -52,13 +54,16 @@ def unlearn(
         batch_index = loop_num % len(forget_batches)
         f_batch = forget_batches[batch_index]
         r_batch = retain_batches[batch_index]
-        model.train()
         pt.cuda.empty_cache()
+        
+        if batch_index == 0:
+            eval_callback(model)
 
         if loop_num % h.fork_every_n_loops == 0:
             for p in interven_params:
                 p.adv_data = p.base_data.clone().detach()
 
+        model.train()
         # ! retain pass
         model.zero_grad(set_to_none=True)
         for p in interven_params:  # switch to base model
@@ -138,7 +143,7 @@ def unlearn(
                 p.adv_data -= h.unlearning_rate * p.grad * h.adv_update
 
         # ! eval current loss
-        if loop_num % 20 == 0:
+        if loop_num % 100 == 0:
             model.eval()
             f_eval_batch = forget_batches[0]
             output = model(**f_eval_batch)

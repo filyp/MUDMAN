@@ -12,8 +12,8 @@ import hydra
 import optuna
 import torch as pt
 from omegaconf import ListConfig, OmegaConf
-from transformers import AutoModelForCausalLM
 
+import wandb
 from datasets import load_dataset
 from unlearning import unlearn
 from utils.data_loading import (
@@ -62,13 +62,16 @@ def run_study(cfg):
     wmdp_set = load_low_mi_set(data_paths["wmdp_deduped_mcq_eval"])
     wmdp_set = filter_by_question(wmdp_set, category=s.category, portion=s.portion)
     mmlu_set = load_dataset("cais/mmlu", "all", split="validation")
+    mmlu_set = mmlu_set.shuffle(seed=42).select(range(300))  # todo revert back later
 
-    # get initial accuracy
-    model = AutoModelForCausalLM.from_pretrained(s.model_id, torch_dtype=pt.bfloat16)
-    wmdp_accuracy = eval_on(wmdp_set, model, temperature=s.eval_temperature)
-    mmlu_accuracy = eval_on(mmlu_set, model, temperature=s.eval_temperature)
-    print(f"initial {wmdp_accuracy=} {mmlu_accuracy=}")
-    del model
+    def _eval_callback(model):
+        model.eval()
+        # eval mmlu and wmdp
+        mmlu_acc = eval_on(mmlu_set, model, temperature=s.eval_temperature)
+        wmdp_acc = eval_on(wmdp_set, model, temperature=s.eval_temperature)
+        logging.info(f"mmlu_acc={mmlu_acc} wmdp_acc={wmdp_acc}")
+        wandb.log({"mmlu_acc": mmlu_acc, "wmdp_acc": wmdp_acc})
+        return mmlu_acc, wmdp_acc
 
     def objective(trial):
         # construct hyperparams
@@ -79,26 +82,25 @@ def run_study(cfg):
                 hyperparams[hp_name] = trial.suggest_float(hp_name, low, high, log=log)
         logging.info(f"trial {trial.number} - {trial.params}")
 
+        wandb.init(project="wmdp", name=study_name + f"_{trial.number}")
         set_seeds(42)
+
+        print("unlearning...")
         model = unlearn(
             hyperparams,
             s,
             retain_batches,
             forget_batches,
+            _eval_callback,
         )
+        mmlu_pre = eval_on(mmlu_set, model, temperature=s.eval_temperature)
 
-        accuracy = SimpleNamespace()
-        accuracy.wmdp_pre = eval_on(wmdp_set, model, temperature=s.eval_temperature)
-        accuracy.mmlu_pre = eval_on(mmlu_set, model, temperature=s.eval_temperature)
+        print("relearning...")
+        model = relearn(model, relearn_batches, cfg.relearn_config, _eval_callback)
 
-        model = relearn(model, relearn_batches, cfg.relearn_config)
-
-        accuracy.wmdp_post = eval_on(wmdp_set, model, temperature=s.eval_temperature)
-        accuracy.mmlu_post = eval_on(mmlu_set, model, temperature=s.eval_temperature)
-        for k, v in accuracy.__dict__.items():
-            trial.set_user_attr(k, v)
-            print(f"{k}={v}")
-        return accuracy.mmlu_pre, accuracy.wmdp_post
+        mmlu_post, wmdp_post = _eval_callback(model)
+        wandb.finish()
+        return mmlu_pre, wmdp_post
 
     if cfg.extend_existing_study:
         study = optuna.load_study(study_name=study_name, storage=storage)

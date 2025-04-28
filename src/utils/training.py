@@ -7,6 +7,7 @@ import torch as pt
 from transformers import set_seed as set_transformers_seed
 
 import wandb
+from utils.evals import eval_on
 from utils.loss_fns import cross_entropy_loss
 
 
@@ -22,23 +23,34 @@ def set_seeds(seed):
     pt.use_deterministic_algorithms(True)
 
 
-def relearn(model, relearn_batches, config):
+def relearn(model, relearn_batches, conf, eval_callback):
     # relearning
     set_seeds(42)
-    optimizer = pt.optim.SGD(model.parameters(), lr=config.lr)
+    optimizer = pt.optim.SGD(model.parameters(), lr=conf.lr)
     for p in model.parameters():
         p.requires_grad = True
-    num_of_loops = int(len(relearn_batches) * config.epochs)
+    num_of_loops = int(len(relearn_batches) * conf.epochs)
     for loop_num in range(num_of_loops):
-        model.train()
         pt.cuda.empty_cache()
         batch_index = loop_num % len(relearn_batches)
         batch = relearn_batches[batch_index]
+        
+        if batch_index == 0:
+            eval_callback(model)
 
+        model.train()
+        optimizer.zero_grad(set_to_none=True)
         output = model(**batch)
         loss = cross_entropy_loss(output, batch)
         loss.backward()
         optimizer.step()
+
+        if loop_num % 100 == 0:
+            model.eval()
+            eval_batch = relearn_batches[0]
+            output = model(**eval_batch)
+            loss = cross_entropy_loss(output, eval_batch)
+            logging.info(f"step {loop_num} \t relearn_loss={loss.item():.4f}")
 
     return model
 
