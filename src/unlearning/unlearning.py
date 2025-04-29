@@ -54,14 +54,14 @@ def unlearn(
 
         if loop_num % h.fork_every_n_loops == 0 and h.train_adversary:
             # fork the adversary
-            del adversary
-            adversary = deepcopy(model)
+            adversary.load_state_dict(model.state_dict())
             pt.cuda.empty_cache()
             gc.collect()
 
         model.train()
         # ! retain pass
         model.zero_grad(set_to_none=True)
+        adversary.zero_grad(set_to_none=True)
         output = model(**r_batch)
         retain_loss = cross_entropy_loss(output, r_batch)
         if "rep_eng_retain_lr" in h:
@@ -109,6 +109,11 @@ def unlearn(
                 ap.grad *= total_interven_numel**0.5 / grad_norm
 
             p.data -= h.unlearning_rate * ap.grad
+
+        model.zero_grad(set_to_none=True)
+        adversary.zero_grad(set_to_none=True)
+        pt.cuda.empty_cache()
+        gc.collect()
 
         # # ! eval current loss
         # if loop_num % 100 == 0:

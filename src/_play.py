@@ -28,6 +28,9 @@ from utils.evals import eval_on
 from utils.git_and_reproducibility import *
 from utils.training import set_seeds
 
+
+logging.basicConfig(level=logging.INFO)
+
 pt.set_default_device("cuda")
 
 s = OmegaConf.create(dict(
@@ -59,13 +62,14 @@ hyperparams = OmegaConf.create(dict(
     train_adversary=True,
     adv_decay=1,
     adv_lr=0.0003,
-    fork_every_n_loops=30,
+    fork_every_n_loops=20,
     retain_momentum=0.8,
     retaining_rate=1.0e-7,
     unlearning_rate=1.0e-10,
     clip_at=0,  # Added from unlearning.py
 ))
 
+# %%
 # load forget set
 _f_corpus = load_low_mi_set(data_paths[s.forget_set_name])
 _f_corpus = filter_by_question(_f_corpus, category=s.category, portion=s.portion)

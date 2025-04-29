@@ -114,8 +114,9 @@ def load_retain_corpus(dataset_name):
                 "HuggingFaceFW/fineweb-edu",
                 name="sample-10BT",
                 split="train",
-                streaming=True,
+                # just the smallest parquet file will be enough
+                data_files=["sample/10BT/013_00000.parquet"],
             )
-            return corpus.take(2_500)
+            return corpus.select(range(2_500))
         case _:
             raise ValueError(f"Invalid dataset name: {dataset_name}")
