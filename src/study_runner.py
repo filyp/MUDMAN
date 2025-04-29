@@ -15,7 +15,7 @@ from omegaconf import ListConfig, OmegaConf
 
 import wandb
 from datasets import load_dataset
-from unlearning import unlearn
+from unlearning.unlearning import unlearn
 from utils.data_loading import (
     data_paths,
     filter_by_question,
@@ -70,7 +70,7 @@ def run_study(cfg):
         with pt.no_grad():
             mmlu_acc = eval_on(mmlu_set, model, temperature=s.eval_temperature)
             wmdp_acc = eval_on(wmdp_set, model, temperature=s.eval_temperature)
-        logging.info(f"mmlu_acc={mmlu_acc} wmdp_acc={wmdp_acc}")
+        logging.info(f"{mmlu_acc=:.4f}  {wmdp_acc=:.4f}")
         wandb.log({"mmlu_acc": mmlu_acc, "wmdp_acc": wmdp_acc})
         return mmlu_acc, wmdp_acc
 

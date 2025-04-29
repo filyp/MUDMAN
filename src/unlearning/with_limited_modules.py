@@ -1,10 +1,10 @@
+import gc
 import logging
 from copy import deepcopy
 
 import torch as pt
 from transformers import AutoModelForCausalLM
 
-from utils.evals import eval_on
 from utils.loss_fns import circuit_breaker_retain_loss, cross_entropy_loss, loss_fns
 
 
@@ -55,12 +55,16 @@ def unlearn(
         f_batch = forget_batches[batch_index]
         r_batch = retain_batches[batch_index]
         pt.cuda.empty_cache()
+        gc.collect()
         
         if batch_index == 0:
             eval_callback(model)
 
         if loop_num % h.fork_every_n_loops == 0:
             for p in interven_params:
+                if hasattr(p, "adv_data"):
+                    del p.adv_data
+                gc.collect()
                 pt.cuda.empty_cache()
                 p.adv_data = p.base_data.clone().detach()
 
@@ -111,7 +115,6 @@ def unlearn(
         # ! unlearning step with masking
         # get unlearning grads loss from adversary
         # reuse the computation graph from previous block
-        pt.cuda.empty_cache()
         model.zero_grad(set_to_none=True)
         loss_fn = loss_fns[h.unlearning_loss_fn]
         forget_loss = loss_fn(output, f_batch, clip_at)
@@ -143,18 +146,18 @@ def unlearn(
                 assert h.train_adversary  # otherwise it may be wrong
                 p.adv_data -= h.unlearning_rate * p.grad * h.adv_update
 
-        # # ! eval current loss
-        # if loop_num % 100 == 0:
-        #     model.eval()
-        #     f_eval_batch = forget_batches[0]
-        #     output = model(**f_eval_batch)
-        #     forget_loss = cross_entropy_loss(output, f_eval_batch)
-        #     r_eval_batch = retain_batches[0]
-        #     output = model(**r_eval_batch)
-        #     retain_loss = cross_entropy_loss(output, r_eval_batch)
-        #     logging.info(
-        #         f"step {loop_num} \t retain_loss={retain_loss.item():.4f} \t forget_loss={forget_loss.item():.4f}"
-        #     )
+        # ! eval current loss
+        if loop_num % 100 == 0:
+            model.eval()
+            f_eval_batch = forget_batches[0]
+            output = model(**f_eval_batch)
+            forget_loss = cross_entropy_loss(output, f_eval_batch)
+            r_eval_batch = retain_batches[0]
+            output = model(**r_eval_batch)
+            retain_loss = cross_entropy_loss(output, r_eval_batch)
+            logging.info(
+                f"step {loop_num} \t retain_loss={retain_loss.item():.4f} \t forget_loss={forget_loss.item():.4f}"
+            )
 
     for p in interven_params:  # switch to base model
         p.data = p.base_data
