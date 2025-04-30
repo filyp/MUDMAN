@@ -446,3 +446,19 @@ with DisruptionHooks(model) as cm:
 # wmdp_accuracy=0.44540455616653574
 # and after longer relearning, it's:
 # 0.45011783189316573
+
+# param_names = [
+#     "embed_tokens.weight",
+#     "model.layers.0.self_attn.q_proj.weight",
+#     "model.layers.0.self_attn.k_proj.weight",
+#     "model.layers.0.self_attn.v_proj.weight",
+#     "model.layers.0.self_attn.o_proj.weight",
+#     "model.layers.0.mlp.gate_proj.weight",
+#     "model.layers.0.mlp.up_proj.weight",
+#     "model.layers.0.mlp.down_proj.weight",
+#     "model.layers.0.input_layernorm.weight",
+#     "model.layers.0.post_attention_layernorm.weight",
+#     ...
+#     "model.norm.weight",
+# ]
+

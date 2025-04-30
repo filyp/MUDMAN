@@ -53,8 +53,8 @@ disruption_batches = load_batches(d_corpus, s.model_id, 16, s.max_length)
 
 # %%
 # choose eval question
-question_index = 0
-# 3 is also nice
+# nice questions: 3, 5, 
+question_index = 5
 f_eval_set = wmdp_mcq_full.select([question_index])
 target_question = f_eval_set[0]["question"]
 print(f"{target_question=}")
@@ -70,156 +70,35 @@ retain_batches = load_batches(r_corpus, s.model_id, 3, s.max_length)
 assert len(retain_batches) == 1
 
 
-# wmdp_acc = eval_on(f_eval_set, model, temperature=1)
-# %%
-param_names = [
-    "embed_tokens.weight",
-    "layers.0.self_attn.q_proj.weight",
-    "layers.0.self_attn.k_proj.weight",
-    "layers.0.self_attn.v_proj.weight",
-    "layers.0.self_attn.o_proj.weight",
-    "layers.0.mlp.gate_proj.weight",
-    "layers.0.mlp.up_proj.weight",
-    "model.layers.0.mlp.down_proj.weight",
-    "model.layers.0.input_layernorm.weight",
-    "model.layers.0.post_attention_layernorm.weight",
-    "model.layers.1.self_attn.q_proj.weight",
-    "model.layers.1.self_attn.k_proj.weight",
-    "model.layers.1.self_attn.v_proj.weight",
-    "model.layers.1.self_attn.o_proj.weight",
-    "model.layers.1.mlp.gate_proj.weight",
-    "model.layers.1.mlp.up_proj.weight",
-    "model.layers.1.mlp.down_proj.weight",
-    "model.layers.1.input_layernorm.weight",
-    "model.layers.1.post_attention_layernorm.weight",
-    "model.layers.2.self_attn.q_proj.weight",
-    "model.layers.2.self_attn.k_proj.weight",
-    "model.layers.2.self_attn.v_proj.weight",
-    "model.layers.2.self_attn.o_proj.weight",
-    "model.layers.2.mlp.gate_proj.weight",
-    "model.layers.2.mlp.up_proj.weight",
-    "model.layers.2.mlp.down_proj.weight",
-    "model.layers.2.input_layernorm.weight",
-    "model.layers.2.post_attention_layernorm.weight",
-    "model.layers.3.self_attn.q_proj.weight",
-    "model.layers.3.self_attn.k_proj.weight",
-    "model.layers.3.self_attn.v_proj.weight",
-    "model.layers.3.self_attn.o_proj.weight",
-    "model.layers.3.mlp.gate_proj.weight",
-    "model.layers.3.mlp.up_proj.weight",
-    "model.layers.3.mlp.down_proj.weight",
-    "model.layers.3.input_layernorm.weight",
-    "model.layers.3.post_attention_layernorm.weight",
-    "model.layers.4.self_attn.q_proj.weight",
-    "model.layers.4.self_attn.k_proj.weight",
-    "model.layers.4.self_attn.v_proj.weight",
-    "model.layers.4.self_attn.o_proj.weight",
-    "model.layers.4.mlp.gate_proj.weight",
-    "model.layers.4.mlp.up_proj.weight",
-    "model.layers.4.mlp.down_proj.weight",
-    "model.layers.4.input_layernorm.weight",
-    "model.layers.4.post_attention_layernorm.weight",
-    "model.layers.5.self_attn.q_proj.weight",
-    "model.layers.5.self_attn.k_proj.weight",
-    "model.layers.5.self_attn.v_proj.weight",
-    "model.layers.5.self_attn.o_proj.weight",
-    "model.layers.5.mlp.gate_proj.weight",
-    "model.layers.5.mlp.up_proj.weight",
-    "model.layers.5.mlp.down_proj.weight",
-    "model.layers.5.input_layernorm.weight",
-    "model.layers.5.post_attention_layernorm.weight",
-    "model.layers.6.self_attn.q_proj.weight",
-    "model.layers.6.self_attn.k_proj.weight",
-    "model.layers.6.self_attn.v_proj.weight",
-    "model.layers.6.self_attn.o_proj.weight",
-    "model.layers.6.mlp.gate_proj.weight",
-    "model.layers.6.mlp.up_proj.weight",
-    "model.layers.6.mlp.down_proj.weight",
-    "model.layers.6.input_layernorm.weight",
-    "model.layers.6.post_attention_layernorm.weight",
-    "model.layers.7.self_attn.q_proj.weight",
-    "model.layers.7.self_attn.k_proj.weight",
-    "model.layers.7.self_attn.v_proj.weight",
-    "model.layers.7.self_attn.o_proj.weight",
-    "model.layers.7.mlp.gate_proj.weight",
-    "model.layers.7.mlp.up_proj.weight",
-    "model.layers.7.mlp.down_proj.weight",
-    "model.layers.7.input_layernorm.weight",
-    "model.layers.7.post_attention_layernorm.weight",
-    "model.layers.8.self_attn.q_proj.weight",
-    "model.layers.8.self_attn.k_proj.weight",
-    "model.layers.8.self_attn.v_proj.weight",
-    "model.layers.8.self_attn.o_proj.weight",
-    "model.layers.8.mlp.gate_proj.weight",
-    "model.layers.8.mlp.up_proj.weight",
-    "model.layers.8.mlp.down_proj.weight",
-    "model.layers.8.input_layernorm.weight",
-    "model.layers.8.post_attention_layernorm.weight",
-    "model.layers.9.self_attn.q_proj.weight",
-    "model.layers.9.self_attn.k_proj.weight",
-    "model.layers.9.self_attn.v_proj.weight",
-    "model.layers.9.self_attn.o_proj.weight",
-    "model.layers.9.mlp.gate_proj.weight",
-    "model.layers.9.mlp.up_proj.weight",
-    "model.layers.9.mlp.down_proj.weight",
-    "model.layers.9.input_layernorm.weight",
-    "model.layers.9.post_attention_layernorm.weight",
-    "model.layers.10.self_attn.q_proj.weight",
-    "model.layers.10.self_attn.k_proj.weight",
-    "model.layers.10.self_attn.v_proj.weight",
-    "model.layers.10.self_attn.o_proj.weight",
-    "model.layers.10.mlp.gate_proj.weight",
-    "model.layers.10.mlp.up_proj.weight",
-    "model.layers.10.mlp.down_proj.weight",
-    "model.layers.10.input_layernorm.weight",
-    "model.layers.10.post_attention_layernorm.weight",
-    "model.layers.11.self_attn.q_proj.weight",
-    "model.layers.11.self_attn.k_proj.weight",
-    "model.layers.11.self_attn.v_proj.weight",
-    "model.layers.11.self_attn.o_proj.weight",
-    "model.layers.11.mlp.gate_proj.weight",
-    "model.layers.11.mlp.up_proj.weight",
-    "model.layers.11.mlp.down_proj.weight",
-    "model.layers.11.input_layernorm.weight",
-    "model.layers.11.post_attention_layernorm.weight",
-    "model.layers.12.self_attn.q_proj.weight",
-    "model.layers.12.self_attn.k_proj.weight",
-    "model.layers.12.self_attn.v_proj.weight",
-    "model.layers.12.self_attn.o_proj.weight",
-    "model.layers.12.mlp.gate_proj.weight",
-    "model.layers.12.mlp.up_proj.weight",
-    "model.layers.12.mlp.down_proj.weight",
-    "model.layers.12.input_layernorm.weight",
-    "model.layers.12.post_attention_layernorm.weight",
-    "model.layers.13.self_attn.q_proj.weight",
-    "model.layers.13.self_attn.k_proj.weight",
-    "model.layers.13.self_attn.v_proj.weight",
-    "model.layers.13.self_attn.o_proj.weight",
-    "model.layers.13.mlp.gate_proj.weight",
-    "model.layers.13.mlp.up_proj.weight",
-    "model.layers.13.mlp.down_proj.weight",
-    "model.layers.13.input_layernorm.weight",
-    "model.layers.13.post_attention_layernorm.weight",
-    "model.layers.14.self_attn.q_proj.weight",
-    "model.layers.14.self_attn.k_proj.weight",
-    "model.layers.14.self_attn.v_proj.weight",
-    "model.layers.14.self_attn.o_proj.weight",
-    "model.layers.14.mlp.gate_proj.weight",
-    "model.layers.14.mlp.up_proj.weight",
-    "model.layers.14.mlp.down_proj.weight",
-    "model.layers.14.input_layernorm.weight",
-    "model.layers.14.post_attention_layernorm.weight",
-    "model.layers.15.self_attn.q_proj.weight",
-    "model.layers.15.self_attn.k_proj.weight",
-    "model.layers.15.self_attn.v_proj.weight",
-    "model.layers.15.self_attn.o_proj.weight",
-    "model.layers.15.mlp.gate_proj.weight",
-    "model.layers.15.mlp.up_proj.weight",
-    "model.layers.15.mlp.down_proj.weight",
-    "model.layers.15.input_layernorm.weight",
-    "model.layers.15.post_attention_layernorm.weight",
-    "model.norm.weight",
-]
+def _eval_callback(model):
+    model.eval()
+    # eval mmlu and wmdp
+    with pt.no_grad():
+        wmdp_acc = eval_on(f_eval_set, model, temperature=1)
+        # mmlu_acc = eval_on(mmlu_set, model, temperature=1)
+
+        loss = 0
+        for d_batch in disruption_batches[-16:]:
+            output = model(**d_batch)
+            loss += cross_entropy_loss(output, d_batch)
+        disr_loss = loss / len(disruption_batches[-16:])
+
+    # logging.info(f"{wmdp_acc=:.4f} {disr_loss=:.4f}")
+    # wandb.log({"wmdp_acc": wmdp_acc, "disr_loss": disr_loss, "update_norm2": update_norm2})
+    # if wmdp_acc < 0.3 or disr_loss > 2.62:
+    #     raise StopIteration
+    return wmdp_acc, disr_loss
+
+
+model = AutoModelForCausalLM.from_pretrained(s.model_id, torch_dtype=pt.bfloat16)
+param_names = [n for n, p in model.named_parameters()]
+
+center_wmdp, center_disr = _eval_callback(model)
+print(f"{center_wmdp=:.4f} {center_disr=:.4f}")
+
+del model
+pt.cuda.empty_cache()
+
 
 # %%
 def unlearn_percentiles(
@@ -227,7 +106,7 @@ def unlearn_percentiles(
     conf,
     retain_batches,
     forget_batches,
-    eval_callback,
+    eval_callback=lambda _: None,
 ):
     loss_fn = loss_fns[h.unlearning_loss_fn]
 
@@ -253,7 +132,6 @@ def unlearn_percentiles(
     forget_loss = loss_fn(output, forget_batches[0], 0)
     forget_loss.backward()
 
-    grad_norm = 0
     for p in model.parameters():
         if not p.requires_grad:
             continue
@@ -271,13 +149,9 @@ def unlearn_percentiles(
             mask = p.retain_acc.sign() == p.grad.sign()
             p.grad *= mask
 
-        grad_norm += p.grad.norm() ** 2
-    grad_norm = grad_norm**0.5
-
     # ! unlearning loop
-    update_norm = 0
     for loop_num in range(conf.unlearning_epochs):
-        eval_callback(model, update_norm)
+        # eval_callback(model)
 
         for p in model.parameters():
             if not p.requires_grad:
@@ -285,116 +159,38 @@ def unlearn_percentiles(
             # ! update weights
             p.data -= h.unlearning_rate * p.grad
 
-        update_norm += h.unlearning_rate * grad_norm
-
     return model
 
 
-def _eval_callback(model, update_norm):
-    model.eval()
-    # eval mmlu and wmdp
-    with pt.no_grad():
-        wmdp_acc = eval_on(f_eval_set, model, temperature=1)
-        # mmlu_acc = eval_on(mmlu_set, model, temperature=1)
-
-        loss = 0
-        for d_batch in disruption_batches[-8:]:
-            output = model(**d_batch)
-            loss += cross_entropy_loss(output, d_batch)
-        disr_loss = loss / len(disruption_batches[-8:])
-
-    update_norm2 = update_norm**2
-    logging.info(f"{wmdp_acc=:.4f} {disr_loss=:.4f} {update_norm2=:.4f}")
-    wandb.log(
-        {"wmdp_acc": wmdp_acc, "disr_loss": disr_loss, "update_norm2": update_norm2}
-    )
-    # if wmdp_acc < 0.3 or disr_loss > 2.62:
-    #     raise StopIteration
-
-
-# _lr = 3e-3
 _lr = 3e-2
-# for modules, unlearning_rate in [
-#     # (["up_proj"], _lr),
-#     # (["down_proj"], _lr * 0.1),
-#     # (["gate_proj"], _lr * 4),
-#     # (["q_proj"], _lr),
-#     # (["k_proj"], _lr * 4),
-#     # (["v_proj"], _lr),
-#     # (["o_proj"], _lr),
-#     (["gate_proj", "o_proj", "v_proj", "up_proj"], _lr * 0.1),
-# ]:
-# for start_layer in range(0, 16, 4):
-
-# modules = [f".{num}.mlp.gate_proj" for num in range(start_layer, start_layer + 4)]
-for modules in param_names:
-    # construct hyperparams
+wmdp_accs = {}
+disr_losses = {}
+for param_name in param_names:
     h = OmegaConf.create(
         dict(
             normalize_grads=False,
             unlearning_loss_fn="neg_cross_entropy",
             # unlearning_loss_fn="neg_entropy",
             # unlearning_loss_fn="correct_logit_minus_avg",
-            #
             use_masking=False,
             unlearning_rate=_lr,
-            modules=[modules],
+            modules=[param_name],
             percentile=None,
         )
     )
     s.unlearning_epochs = 1
 
-    name = f"{h.unlearning_rate}|{modules}"
-    wandb.init(project="wmdp_single3", name=name, group="all_module_all_layers")
-    try:
-        unlearn_percentiles(
-            h,
-            s,
-            retain_batches,
-            # disruption_batches,
-            forget_batches,
-            _eval_callback,
-        )
-    except StopIteration:
-        logging.info("Stopping early")
+    model = unlearn_percentiles(
+        h,
+        s,
+        retain_batches,
+        forget_batches,
+    )
+    wmdp_accs[param_name], disr_losses[param_name] = _eval_callback(model)
+    print(f"{param_name=} {wmdp_accs[param_name]=:.4f} {disr_losses[param_name]=:.4f}")
+    del model
     pt.cuda.empty_cache()
-    wandb.finish()
 
-
-# %%
-# Initialize wandb API
-api = wandb.Api()
-
-# Get all runs from the project and group
-runs = api.runs(
-    "filyp/wmdp_single3",  # Replace with your wandb username
-    filters={"group": "all_module_all_layers"},
-)
-histories = [run.history() for run in runs]
-
-# %%
-
-center_wmdp = histories[0]["wmdp_acc"][0]
-center_disr = histories[0]["disr_loss"][0]
-
-wmdp_acc = []
-disr_loss = []
-labels = []
-for history, run in zip(histories, runs):
-
-    # Get the parameter name from the run name (after the '|' character)
-    param_name = run.name.split("|")[1]
-    labels.append(param_name)
-
-    assert history["wmdp_acc"][0] == center_wmdp
-    assert history["disr_loss"][0] == center_disr
-
-    wmdp_acc.append(list(history["wmdp_acc"])[1])
-    disr_loss.append(list(history["disr_loss"])[1])
-
-# Calculate centered values
-wmdp_acc_centered = [x - center_wmdp for x in wmdp_acc]
-disr_loss_centered = [x - center_disr for x in disr_loss]
 
 # %%
 _w_ref = 0.02
@@ -402,14 +198,16 @@ _d_ref = 0.004
 
 # Parse labels and create color mapping
 layer_module_colors = []
-for label, w, d in zip(labels, wmdp_acc_centered, disr_loss_centered):
-    if "layers." not in label:
+for param_name in param_names:
+    if "layers." not in param_name:
         continue
+    w = wmdp_accs[param_name] - center_wmdp
+    d = disr_losses[param_name] - center_disr
 
     # Parse layer and module
-    parts = label.split("layers.")[1].split(".")
+    parts = param_name.split("layers.")[1].split(".")
     layer = int(parts[0])
-    module = ".".join(parts[1:]).replace(".weight", "")
+    param_name = ".".join(parts[1:]).replace(".weight", "")
 
     # Create color
     color = (
@@ -418,7 +216,7 @@ for label, w, d in zip(labels, wmdp_acc_centered, disr_loss_centered):
         0.0,  # blue
     )
 
-    layer_module_colors.append((layer, module, color))
+    layer_module_colors.append((layer, param_name, color))
 
 # Get unique sorted modules and layers
 unique_modules = sorted(set(module for _, module, _ in layer_module_colors))
@@ -426,8 +224,8 @@ layer_nums = sorted(set(layer for layer, _, _ in layer_module_colors))
 
 # Create color lookup dictionary
 color_matrix = {layer: {} for layer in layer_nums}
-for layer, module, color in layer_module_colors:
-    color_matrix[layer][module] = color
+for layer, param_name, color in layer_module_colors:
+    color_matrix[layer][param_name] = color
 
 # Create the visualization
 fig, ax = plt.subplots(figsize=(5.5, 10))
@@ -441,8 +239,8 @@ width = len(unique_modules) * cell_width
 
 # Draw cells
 for i, layer in enumerate(layer_nums):
-    for j, module in enumerate(unique_modules):
-        color = color_matrix[layer][module]
+    for j, param_name in enumerate(unique_modules):
+        color = color_matrix[layer][param_name]
         rect = plt.Rectangle(
             (j * cell_width, (len(layer_nums) - 1 - i) * cell_height),
             cell_width - 0.1,
@@ -461,11 +259,11 @@ for i, layer in enumerate(layer_nums):
     )
 
 # Add module labels on top, rotated 90 degrees
-for j, module in enumerate(unique_modules):
+for j, param_name in enumerate(unique_modules):
     ax.text(
         j * cell_width + cell_width / 2,
         height + 0.1,
-        module,
+        param_name,
         ha="left",
         va="bottom",
         rotation=90,
