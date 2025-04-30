@@ -30,47 +30,45 @@ s = OmegaConf.create(
     dict(
         model_id="meta-llama/Llama-3.2-1B",
         unlearning_epochs=12,
-        category="bio",
-        portion=0.15,
         max_length=128,
     )
 )
 
 # %%
-# load eval question
-_wmdp_bio = load_dataset("cais/wmdp", "wmdp-bio")["test"].shuffle(seed=42)
-f_eval_set = _wmdp_bio.select([0])
-target_question = _wmdp_bio[0]["question"]
-print(f"{target_question=}")
+# load corpora
+f_full_corpus = load_low_mi_set(data_paths["wmdp_deduped_unlearning"])
+r_full_corpus = load_low_mi_set(data_paths["wmdp_deduped_wrong_answers"])
 
-# # mmlu_set = load_dataset("cais/mmlu", "college_biology", split="test")
-# mmlu_set = load_dataset("cais/mmlu", "all", split="validation")
-# mmlu_set = mmlu_set.shuffle(seed=0).select(range(64))
-
-# load forget set
-f_corpus = load_low_mi_set(data_paths["wmdp_deduped_unlearning"])
-f_corpus = f_corpus.filter(lambda ex: ex["original_question"] == target_question)
-forget_batches = load_batches(f_corpus, s.model_id, 3, s.max_length)
-print(f_corpus)
-
-# %%
-
-# load retain set1
-r_corpus = load_low_mi_set(data_paths["wmdp_deduped_wrong_answers"])
-r_corpus = r_corpus.filter(lambda ex: ex["original_question"] == target_question)
-retain_batches = load_batches(r_corpus, s.model_id, 3, s.max_length)
-print(r_corpus)
+# load questions
+wmdp_mcq_full = load_low_mi_set(data_paths["wmdp_deduped_mcq_full"])
 
 # load disrution eval set
 d_corpus = load_retain_corpus("fineweb_edu")
 disruption_batches = load_batches(d_corpus, s.model_id, 16, s.max_length)
 
+# # mmlu_set = load_dataset("cais/mmlu", "college_biology", split="test")
+# mmlu_set = load_dataset("cais/mmlu", "all", split="validation")
+# mmlu_set = mmlu_set.shuffle(seed=0).select(range(64))
 
 # %%
+# choose eval question
+question_index = 3
+f_eval_set = wmdp_mcq_full.select([question_index])
+target_question = f_eval_set[0]["question"]
+print(f"{target_question=}")
 
+# load forget set
+f_corpus = f_full_corpus.filter(lambda ex: ex["original_question"] == target_question)
+forget_batches = load_batches(f_corpus, s.model_id, 3, s.max_length)
+assert len(forget_batches) == 1
+
+# load retain set
+r_corpus = r_full_corpus.filter(lambda ex: ex["original_question"] == target_question)
+retain_batches = load_batches(r_corpus, s.model_id, 3, s.max_length)
+assert len(retain_batches) == 1
+
+# wmdp_acc = eval_on(f_eval_set, model, temperature=1)
 # %%
-
-
 def unlearn_percentiles(
     h,
     conf,
@@ -99,6 +97,7 @@ def unlearn_percentiles(
     forget_loss = loss_fn(output, forget_batches[0], 0)
     forget_loss.backward()
 
+    grad_norm = 0
     for n, p in model.named_parameters():
         if h.modules not in n:
             continue
@@ -115,10 +114,14 @@ def unlearn_percentiles(
         if h.use_masking:
             mask = p.retain_acc.sign() == p.grad.sign()
             p.grad *= mask
+        
+        grad_norm += p.grad.norm() ** 2
+    grad_norm = grad_norm ** 0.5
 
     # ! unlearning loop
+    update_norm = 0
     for loop_num in range(conf.unlearning_epochs):
-        eval_callback(model)
+        eval_callback(model, update_norm)
 
         for n, p in model.named_parameters():
             if h.modules not in n:
@@ -126,10 +129,12 @@ def unlearn_percentiles(
             # ! update weights
             p.data -= h.unlearning_rate * p.grad
 
+        update_norm += h.unlearning_rate * grad_norm
+
     return model
 
 
-def _eval_callback(model):
+def _eval_callback(model, update_norm):
     model.eval()
     # eval mmlu and wmdp
     with pt.no_grad():
@@ -142,23 +147,22 @@ def _eval_callback(model):
             loss += cross_entropy_loss(output, d_batch)
         disr_loss = loss / len(disruption_batches[-32:])
 
-    logging.info(f"{wmdp_acc=:.4f} {disr_loss=:.4f}")
-    wandb.log({"wmdp_acc": wmdp_acc, "disr_loss": disr_loss})
+    update_norm2 = update_norm ** 2
+    logging.info(f"{wmdp_acc=:.4f} {disr_loss=:.4f} {update_norm2=:.4f}")
+    wandb.log({"wmdp_acc": wmdp_acc, "disr_loss": disr_loss, "update_norm2": update_norm2})
     if wmdp_acc < 0.3 or disr_loss > 2.62:
         raise StopIteration
 
 
-# for modules in ["up_proj", "down_proj", "gate_proj", "q_proj", "k_proj", "v_proj", "o_proj"]:
-# for modules in ["down_proj"]:
-# for modules in ["gate_proj"]:
+_lr = 3e-3
 for modules, unlearning_rate in [
-    ("up_proj", 8.0e-4),
-    ("down_proj", 0.1e-5),
-    ("gate_proj", 24.0e-4),
-    ("q_proj", 8.0e-4),
-    ("k_proj", 24.0e-4),
-    ("v_proj", 8.0e-4),
-    ("o_proj", 8.0e-4),
+    ("up_proj", _lr),
+    ("down_proj", _lr * 0.1),
+    ("gate_proj", _lr * 4),
+    ("q_proj", _lr),
+    ("k_proj", _lr * 4),
+    ("v_proj", _lr),
+    ("o_proj", _lr),
 ]:
     # construct hyperparams
     h = OmegaConf.create(
@@ -167,7 +171,6 @@ for modules, unlearning_rate in [
             unlearning_loss_fn="neg_cross_entropy",
             # unlearning_loss_fn="neg_entropy",
             # unlearning_loss_fn="correct_logit_minus_avg",
-            # clip_at=0,
             #
             use_masking=False,
             unlearning_rate=unlearning_rate,
@@ -192,7 +195,5 @@ for modules, unlearning_rate in [
     pt.cuda.empty_cache()
     wandb.finish()
 
-# %%
-for n, p in model.named_parameters():
-    print(n, p.shape)
+
 # %%

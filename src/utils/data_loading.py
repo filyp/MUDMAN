@@ -25,6 +25,14 @@ data_paths = dict(
         "wmdp-deduped/split_4.jsonl",
     ],
 
+    wmdp_deduped_mcq_full=[
+        "wmdp-deduped/split_0.jsonl",
+        "wmdp-deduped/split_1.jsonl",
+        "wmdp-deduped/split_2.jsonl",
+        "wmdp-deduped/split_3.jsonl",
+        "wmdp-deduped/split_4.jsonl",
+    ],
+
     wmdp_deduped_wrong_answers=[
         "wmdp-deduped/whp_corpus_split_0.jsonl",
         "wmdp-deduped/whp_corpus_split_1.jsonl",
@@ -72,10 +80,13 @@ def load_low_mi_set(paths):
     )
 
 
+# %%
+
 def filter_by_question(corpus, category="bio", portion=1):
     # load the origianl wmdp
 
     # optionally filter by category and cut out some portion
+    # we must reference the original wmdp, because deduped version has no category info
     if category == "bio":
         _wmdp_bio = load_dataset("cais/wmdp", "wmdp-bio")["test"].shuffle(seed=42)
         bio_questions = [ex["question"] for ex in _wmdp_bio]
