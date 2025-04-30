@@ -4,9 +4,9 @@ import os
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # necessary for determinism:
 
+import gc
 import logging
 from copy import deepcopy
-from types import SimpleNamespace
 
 import hydra
 import optuna
@@ -94,6 +94,9 @@ def run_study(cfg):
             forget_batches,
             _eval_callback,
         )
+        pt.cuda.empty_cache()
+        gc.collect()
+
         mmlu_pre = eval_on(mmlu_set, model, temperature=s.eval_temperature)
 
         print("relearning...")

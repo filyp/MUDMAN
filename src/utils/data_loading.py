@@ -24,6 +24,14 @@ data_paths = dict(
     wmdp_deduped_mcq_eval=[
         "wmdp-deduped/split_4.jsonl",
     ],
+
+    wmdp_deduped_wrong_answers=[
+        "wmdp-deduped/whp_corpus_split_0.jsonl",
+        "wmdp-deduped/whp_corpus_split_1.jsonl",
+        "wmdp-deduped/whp_corpus_split_2.jsonl",
+        "wmdp-deduped/whp_corpus_split_3.jsonl",
+        "wmdp-deduped/whp_corpus_split_4.jsonl",
+    ],
     # years_unlearning=[
     #     "dates-years-trimmed/corpus_split_0.jsonl",
     #     "dates-years-trimmed/corpus_split_1.jsonl",

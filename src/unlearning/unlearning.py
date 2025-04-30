@@ -6,6 +6,7 @@ import torch as pt
 from transformers import AutoModelForCausalLM
 
 from utils.loss_fns import circuit_breaker_retain_loss, cross_entropy_loss, loss_fns
+from utils.training import set_seeds
 
 
 def unlearn(
@@ -16,21 +17,19 @@ def unlearn(
     eval_callback,
 ):
     h.fork_every_n_loops = int(h.fork_every_n_loops)
+    loss_fn = loss_fns[h.unlearning_loss_fn]
+    clip_at = h.clip_at if "clip_at" in h else 0
 
+    set_seeds(42)
     model = AutoModelForCausalLM.from_pretrained(conf.model_id, torch_dtype=pt.bfloat16)
     model.config.use_cache = False
 
-    clip_at = h.clip_at if "clip_at" in h else 0
-
-    # normalizing by the total number of parameters ** 0.5 is useful for
-    # experiments with varying target modules, to make unlearning rate comparable
-    total_interven_numel = sum(p.numel() for p in model.parameters())
+    # todo maybe i should skip the embedding layer when unlearning?
 
     for p in model.parameters():
         p.retain_acc = pt.zeros_like(p.data)
 
     # ! unlearning loop
-    logging.info("step      base_f      base_r")
     if "rep_eng_retain_lr" in h:
         frozen_model = deepcopy(model)
         frozen_model.eval()
@@ -39,6 +38,14 @@ def unlearn(
         adversary = deepcopy(model)
     else:
         adversary = model
+    
+    # calibrate normalization
+    f_batch = forget_batches[0]
+    model.zero_grad(set_to_none=True)
+    output = model(**f_batch)
+    loss = loss_fn(output, f_batch, clip_at)
+    loss.backward()
+    target_grad_norm = sum(p.grad.norm() ** 2 for p in model.parameters()) ** 0.5
 
     # ! unlearning loop
     num_of_loops = int(len(forget_batches) * conf.unlearning_epochs)
@@ -96,7 +103,6 @@ def unlearn(
         # reuse the computation graph from previous block
         model.zero_grad(set_to_none=True)
         adversary.zero_grad(set_to_none=True)
-        loss_fn = loss_fns[h.unlearning_loss_fn]
         forget_loss = loss_fn(output, f_batch, clip_at)
         forget_loss.backward()
         grad_norm = sum(p.grad.norm() ** 2 for p in adversary.parameters()) ** 0.5
@@ -106,14 +112,9 @@ def unlearn(
                 ap.grad *= mask
 
             if h.normalize_grads:
-                ap.grad *= total_interven_numel**0.5 / grad_norm
+                ap.grad *= target_grad_norm / grad_norm
 
             p.data -= h.unlearning_rate * ap.grad
-
-        model.zero_grad(set_to_none=True)
-        adversary.zero_grad(set_to_none=True)
-        pt.cuda.empty_cache()
-        gc.collect()
 
         # # ! eval current loss
         # if loop_num % 100 == 0:

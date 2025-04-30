@@ -20,7 +20,7 @@ def set_seeds(seed):
     random.seed(seed)
     np.random.seed(seed)
     set_transformers_seed(seed)
-    pt.use_deterministic_algorithms(True)
+    # pt.use_deterministic_algorithms(True)
 
 
 def relearn(model, relearn_batches, conf, eval_callback):
