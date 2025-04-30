@@ -4,12 +4,13 @@
 import logging
 from copy import deepcopy
 
+import matplotlib.pyplot as plt
+import numpy as np
 import torch as pt
 from omegaconf import OmegaConf
 from transformers import AutoModelForCausalLM
 
 import wandb
-from datasets import load_dataset
 from utils import loss_fns
 from utils.data_loading import (
     data_paths,
@@ -52,7 +53,8 @@ disruption_batches = load_batches(d_corpus, s.model_id, 16, s.max_length)
 
 # %%
 # choose eval question
-question_index = 3
+question_index = 0
+# 3 is also nice
 f_eval_set = wmdp_mcq_full.select([question_index])
 target_question = f_eval_set[0]["question"]
 print(f"{target_question=}")
@@ -100,7 +102,7 @@ param_names = [
     "model.layers.2.input_layernorm.weight",
     "model.layers.2.post_attention_layernorm.weight",
     "model.layers.3.self_attn.q_proj.weight",
-    "model.layers.3.self_attn.k_proj.weighQt"
+    "model.layers.3.self_attn.k_proj.weight",
     "model.layers.3.self_attn.v_proj.weight",
     "model.layers.3.self_attn.o_proj.weight",
     "model.layers.3.mlp.gate_proj.weight",
@@ -164,14 +166,14 @@ param_names = [
     "model.layers.9.post_attention_layernorm.weight",
     "model.layers.10.self_attn.q_proj.weight",
     "model.layers.10.self_attn.k_proj.weight",
-    "model.layers.10.self_attn.v_proj.weighQt"
+    "model.layers.10.self_attn.v_proj.weight",
     "model.layers.10.self_attn.o_proj.weight",
     "model.layers.10.mlp.gate_proj.weight",
     "model.layers.10.mlp.up_proj.weight",
     "model.layers.10.mlp.down_proj.weight",
     "model.layers.10.input_layernorm.weight",
     "model.layers.10.post_attention_layernorm.weight",
-    "model.layers.11.self_attn.q_proj.weighQt"
+    "model.layers.11.self_attn.q_proj.weight",
     "model.layers.11.self_attn.k_proj.weight",
     "model.layers.11.self_attn.v_proj.weight",
     "model.layers.11.self_attn.o_proj.weight",
@@ -185,7 +187,7 @@ param_names = [
     "model.layers.12.self_attn.v_proj.weight",
     "model.layers.12.self_attn.o_proj.weight",
     "model.layers.12.mlp.gate_proj.weight",
-    "model.layers.12.mlp.up_proj.weighQt"
+    "model.layers.12.mlp.up_proj.weight",
     "model.layers.12.mlp.down_proj.weight",
     "model.layers.12.input_layernorm.weight",
     "model.layers.12.post_attention_layernorm.weight",
@@ -205,7 +207,7 @@ param_names = [
     "model.layers.14.mlp.gate_proj.weight",
     "model.layers.14.mlp.up_proj.weight",
     "model.layers.14.mlp.down_proj.weight",
-    "model.layers.14.input_layernorm.weighQt"
+    "model.layers.14.input_layernorm.weight",
     "model.layers.14.post_attention_layernorm.weight",
     "model.layers.15.self_attn.q_proj.weight",
     "model.layers.15.self_attn.k_proj.weight",
@@ -218,6 +220,7 @@ param_names = [
     "model.layers.15.post_attention_layernorm.weight",
     "model.norm.weight",
 ]
+
 # %%
 def unlearn_percentiles(
     h,
@@ -267,9 +270,9 @@ def unlearn_percentiles(
         if h.use_masking:
             mask = p.retain_acc.sign() == p.grad.sign()
             p.grad *= mask
-        
+
         grad_norm += p.grad.norm() ** 2
-    grad_norm = grad_norm ** 0.5
+    grad_norm = grad_norm**0.5
 
     # ! unlearning loop
     update_norm = 0
@@ -300,15 +303,17 @@ def _eval_callback(model, update_norm):
             loss += cross_entropy_loss(output, d_batch)
         disr_loss = loss / len(disruption_batches[-8:])
 
-    update_norm2 = update_norm ** 2
+    update_norm2 = update_norm**2
     logging.info(f"{wmdp_acc=:.4f} {disr_loss=:.4f} {update_norm2=:.4f}")
-    wandb.log({"wmdp_acc": wmdp_acc, "disr_loss": disr_loss, "update_norm2": update_norm2})
-    if wmdp_acc < 0.3 or disr_loss > 2.62:
-        raise StopIteration
+    wandb.log(
+        {"wmdp_acc": wmdp_acc, "disr_loss": disr_loss, "update_norm2": update_norm2}
+    )
+    # if wmdp_acc < 0.3 or disr_loss > 2.62:
+    #     raise StopIteration
 
 
 # _lr = 3e-3
-_lr = 1e-2
+_lr = 3e-2
 # for modules, unlearning_rate in [
 #     # (["up_proj"], _lr),
 #     # (["down_proj"], _lr * 0.1),
@@ -321,7 +326,7 @@ _lr = 1e-2
 # ]:
 # for start_layer in range(0, 16, 4):
 
-    # modules = [f".{num}.mlp.gate_proj" for num in range(start_layer, start_layer + 4)]
+# modules = [f".{num}.mlp.gate_proj" for num in range(start_layer, start_layer + 4)]
 for modules in param_names:
     # construct hyperparams
     h = OmegaConf.create(
@@ -337,7 +342,7 @@ for modules in param_names:
             percentile=None,
         )
     )
-    s.unlearning_epochs = 6
+    s.unlearning_epochs = 1
 
     name = f"{h.unlearning_rate}|{modules}"
     wandb.init(project="wmdp_single3", name=name, group="all_module_all_layers")
@@ -356,3 +361,146 @@ for modules in param_names:
     wandb.finish()
 
 
+# %%
+# Initialize wandb API
+api = wandb.Api()
+
+# Get all runs from the project and group
+runs = api.runs(
+    "filyp/wmdp_single3",  # Replace with your wandb username
+    filters={"group": "all_module_all_layers"},
+)
+histories = [run.history() for run in runs]
+
+# %%
+
+center_wmdp = histories[0]["wmdp_acc"][0]
+center_disr = histories[0]["disr_loss"][0]
+
+wmdp_acc = []
+disr_loss = []
+labels = []
+for history, run in zip(histories, runs):
+
+    # Get the parameter name from the run name (after the '|' character)
+    param_name = run.name.split("|")[1]
+    labels.append(param_name)
+
+    assert history["wmdp_acc"][0] == center_wmdp
+    assert history["disr_loss"][0] == center_disr
+
+    wmdp_acc.append(list(history["wmdp_acc"])[1])
+    disr_loss.append(list(history["disr_loss"])[1])
+
+# Calculate centered values
+wmdp_acc_centered = [x - center_wmdp for x in wmdp_acc]
+disr_loss_centered = [x - center_disr for x in disr_loss]
+
+# %%
+_w_ref = 0.02
+_d_ref = 0.004
+
+# Parse labels and create color mapping
+layer_module_colors = []
+for label, w, d in zip(labels, wmdp_acc_centered, disr_loss_centered):
+    if "layers." not in label:
+        continue
+
+    # Parse layer and module
+    parts = label.split("layers.")[1].split(".")
+    layer = int(parts[0])
+    module = ".".join(parts[1:]).replace(".weight", "")
+
+    # Create color
+    color = (
+        min(1.0, max(0.0, d / _d_ref)),  # red
+        min(1.0, max(0.0, -w / _w_ref)),  # green
+        0.0,  # blue
+    )
+
+    layer_module_colors.append((layer, module, color))
+
+# Get unique sorted modules and layers
+unique_modules = sorted(set(module for _, module, _ in layer_module_colors))
+layer_nums = sorted(set(layer for layer, _, _ in layer_module_colors))
+
+# Create color lookup dictionary
+color_matrix = {layer: {} for layer in layer_nums}
+for layer, module, color in layer_module_colors:
+    color_matrix[layer][module] = color
+
+# Create the visualization
+fig, ax = plt.subplots(figsize=(5.5, 10))
+ax.set_axis_off()
+
+# Calculate grid dimensions
+cell_height = 1
+cell_width = 1.5
+height = len(layer_nums) * cell_height
+width = len(unique_modules) * cell_width
+
+# Draw cells
+for i, layer in enumerate(layer_nums):
+    for j, module in enumerate(unique_modules):
+        color = color_matrix[layer][module]
+        rect = plt.Rectangle(
+            (j * cell_width, (len(layer_nums) - 1 - i) * cell_height),
+            cell_width - 0.1,
+            cell_height - 0.1,
+            facecolor=color,
+        )
+        ax.add_patch(rect)
+
+    # Add layer number on the left
+    ax.text(
+        -0.3,
+        (len(layer_nums) - 1 - i) * cell_height + cell_height / 2,
+        f"Layer {layer}",
+        ha="right",
+        va="center",
+    )
+
+# Add module labels on top, rotated 90 degrees
+for j, module in enumerate(unique_modules):
+    ax.text(
+        j * cell_width + cell_width / 2,
+        height + 0.1,
+        module,
+        ha="left",
+        va="bottom",
+        rotation=90,
+    )
+
+plt.xlim(-1, width)
+plt.ylim(-1, height + 2)  # Extra space for rotated labels
+
+plt.tight_layout()
+
+
+# # Create a new figure for the legend
+# fig_legend, ax_legend = plt.subplots(figsize=(4, 4))
+
+# # Create a grid of points
+# n_points = 100
+# x = np.linspace(-_w_ref, 0, n_points)  # WMDP change
+# y = np.linspace(0, _d_ref, n_points)  # Disruption change
+# X, Y = np.meshgrid(x, y)
+
+# # Create color array
+# colors = np.zeros((n_points, n_points, 3))
+# colors[:, :, 0] = Y / _d_ref  # red component
+# colors[:, :, 1] = -X / _w_ref  # green component
+# # blue stays 0
+
+# # Plot the color map
+# ax_legend.imshow(colors, extent=[-_w_ref, 0, 0, _d_ref], origin="lower", aspect="auto")
+
+# # Add labels and title
+# ax_legend.set_xlabel("WMDP Accuracy Change")
+# ax_legend.set_ylabel("Disruption Loss Change")
+# ax_legend.set_title("Color Legend")
+
+# # Add gridlines
+# ax_legend.grid(True, color="white", alpha=0.3)
+
+# plt.tight_layout()
