@@ -137,8 +137,8 @@ ax.set_xlabel("Step")
 plt.tight_layout(pad=1.1)  # Adjust the padding value as needed
 
 # Save the figure before showing it
-plot_path = repo_root() / "paper" / "plots" / "logo" / "no_masking.pdf"
-# plot_path = repo_root() / "paper" / "plots" / "logo" / "masking.pdf"
+plot_path = repo_root() / "paper" / "latex" / "plots" / "logo" / "no_masking.pdf"
+# plot_path = repo_root() / "paper" / "latex" / "plots" / "logo" / "masking.pdf"
 plt.savefig(plot_path, bbox_inches='tight')  # Use bbox_inches='tight' to include all elements
 
 # Now show it (this will clear the figure)

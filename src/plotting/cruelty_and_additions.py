@@ -231,6 +231,6 @@ plt.show()
 
 # %%
 
-plot_path = repo_root() / "paper" / "plots" / "cruelty_and_additions.pdf"
+plot_path = repo_root() / "paper" / "latex" / "plots" / "cruelty_and_additions.pdf"
 fig.savefig(plot_path)
 # %%

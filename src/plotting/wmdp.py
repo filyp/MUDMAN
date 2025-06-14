@@ -129,7 +129,7 @@ plt.tight_layout()
 
 # %%
 
-plot_path = repo_root() / "paper" / "plots" / "wmdp7_1pp_allowance.pdf"  # todo update this
+plot_path = repo_root() / "paper" / "latex" / "plots" / "wmdp7_1pp_allowance.pdf"  # todo update this
 if plot_path.parent.exists():
     print(f"Saving plot to {plot_path}")
     fig.savefig(plot_path)

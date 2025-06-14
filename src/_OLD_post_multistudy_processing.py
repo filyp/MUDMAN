@@ -70,7 +70,7 @@ for study in studies:
 # %%
 # # %% slice plot
 plot = stacked_slice_plot(studies, all_trials, show_additional_param=False)
-dir_name = repo_root() / "paper" / "plots" / "slice"
+dir_name = repo_root() / "paper" / "latex" / "plots" / "slice"
 dir_name.mkdir(parents=True, exist_ok=True)
 plot.write_image(dir_name / f"{multistudy_name}.pdf")
 
@@ -78,7 +78,7 @@ plot.write_image(dir_name / f"{multistudy_name}.pdf")
 # plot making must be separated to this new cell to remove "loading mathjax"
 # # %% history plots
 plot = stacked_history_plots(studies, all_trials)
-dir_name = repo_root() / "paper" / "plots" / "history"
+dir_name = repo_root() / "paper" / "latex" / "plots" / "history"
 dir_name.mkdir(parents=True, exist_ok=True)
 plot.write_image(dir_name / f"{multistudy_name}.pdf")
 
@@ -130,13 +130,13 @@ for multistudy_name in multistudy_names:
 
     # # %% slice plot
     plot = stacked_slice_plot(studies, all_trials, show_additional_param=False)
-    dir_name = repo_root() / "paper" / "plots" / "slice"
+    dir_name = repo_root() / "paper" / "latex" / "plots" / "slice"
     dir_name.mkdir(parents=True, exist_ok=True)
     plot.write_image(dir_name / f"{multistudy_name}.pdf")
 
     # # %% history and importance plots (takes quite long)
     plot = stacked_history_and_importance_plots(studies, all_trials)
-    dir_name = repo_root() / "paper" / "plots" / "history"
+    dir_name = repo_root() / "paper" / "latex" / "plots" / "history"
     dir_name.mkdir(parents=True, exist_ok=True)
     plot.write_image(dir_name / f"{multistudy_name}.pdf")
 

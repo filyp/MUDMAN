@@ -279,6 +279,6 @@ fig, axes = create_model_comparison_plot_horizontal(
 )
 plt.show()
 
-plot_path = repo_root() / "paper" / "plots" / "target_modules.pdf"
+plot_path = repo_root() / "paper" / "latex" / "plots" / "target_modules.pdf"
 fig.savefig(plot_path)
 # %%

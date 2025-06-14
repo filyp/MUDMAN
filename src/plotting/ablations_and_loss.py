@@ -191,7 +191,7 @@ for n, (multistudy_name, method_stats) in enumerate(multistudy_to_method_stats.i
 plt.tight_layout()
 
 
-plot_path = repo_root() / "paper" / "plots" / "ablations_and_loss.pdf"
+plot_path = repo_root() / "paper" / "latex" / "plots" / "ablations_and_loss.pdf"
 if plot_path.parent.exists():
     print(f"Saving plot to {plot_path}")
     fig.savefig(plot_path)
