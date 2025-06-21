@@ -1,21 +1,13 @@
 general_config:
   method_name: surgical_irreversible_unlearning
-  # target_modules:
-  #   - gate_proj
   target_modules:
-    - up_proj
-    - down_proj
-    - gate_proj
-    - q_proj
-    - k_proj
-    - v_proj
-    - o_proj
-  model_id: HuggingFaceTB/SmolLM-135M
+    - dense_h_to_4h  # equivalent of gate_proj
+  model_id: EleutherAI/pythia-14m
   retain_set_name: wikitext
   forget_set_name: python
   unlearn_steps: 300
   batch_size: 16
-  n_trials: 300
+  n_trials: 800
   normalize_grads: true
   retain_loss_budget: 0.05
   # method specific
@@ -26,16 +18,16 @@ general_config:
 
 relearn_config:
   relearn_steps: 300
-  relearn_lr: 3.0e-3
+  relearn_lr: 1.0e-4
 
 hyperparams:
   additional_param: None  # on default don't use this
-  adv_decay: 1  # [0.3, 1, false]
+  adv_decay: [0.3, 1, false]
   adv_lr: [0.0003, 0.1, true]
-  fork_every_n_loops: 30  # [6, 42, false]
+  fork_every_n_loops: [6, 42, false]
   retain_momentum: [0, 0.99, false]
   retaining_rate: [1.e-4, 1.e-2, true]
-  unlearning_rate: [1.e-7, 3.e-1, true]
+  unlearning_rate: [1.e-7, 3.e-2, true]
 
 variants:
 
@@ -54,12 +46,11 @@ variants:
   #   retain_momentum: [0, 0, false]
   no_adversary:
     train_adversary: false
-    # adv_decay: [1, 1, false]  # it has no effect anyway
+    adv_decay: [1, 1, false]  # it has no effect anyway
   # no_adv_decay:
   #   adv_decay: [1, 1, false]
   no_normalization:
     normalize_grads: false
-    unlearning_rate: [1.e-4, 3.e+2, true]
   
   # TAR:
   #   # it also has and target modules
@@ -80,7 +71,6 @@ variants:
     retain_momentum: [0, 0, false]
     additional_param_name: rep_eng_retain_lr
     square_norm: true
-    # needs to be small and tuned, because on Smol it explodes
-    additional_param: [1.e-12, 1, true]
-    # adv_decay: [1, 1, false]
+    additional_param: [1, 1, false]
+    adv_decay: [1, 1, false]
     normalize_grads: false
