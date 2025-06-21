@@ -2,7 +2,6 @@
 
 Clone the repository, create a virtual environment preferably with python3.12, and run:
 ```bash
-git checkout 36241eb
 pip install -r requirements.txt
 ```
 (In case of problems, try running `pip install -r .pip_freeze.txt` instead, to install the exact tested package versions.)
@@ -10,6 +9,7 @@ pip install -r requirements.txt
 # Running MUDMAN
 
 ```bash
+git checkout 36241eb
 python src/MUDMAN.py
 ```
 
@@ -22,6 +22,7 @@ It contains a simple example of unlearning on the Pile-Bio dataset with Llama-3.
 To locally run a comparison of multiple methods in a single setup, run:
 
 ```bash
+git checkout 36241eb
 python src/study_runner.py --config-path configs/EXPERIMENT_NAME.yaml
 ```
 
@@ -40,6 +41,7 @@ To run remotely with modal.com, first create a `secret.json` file in the reposit
 
 Then run this script (it has the same options as `study_runner.py`):
 ```bash
+git checkout 36241eb
 modal run src/modal_runner.py --config-path configs/EXPERIMENT_NAME.yaml
 ```
 
